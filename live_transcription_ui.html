@@ -443,6 +443,23 @@
             color: #6c757d;
             margin-top: 4px;
         }
+
+        .browser-warning {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            color: #856404;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .browser-warning svg {
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -456,13 +473,29 @@
         
         <div class="control-panel">
             <div class="form-group">
+                <label class="form-label">Recording Mode</label>
+                <div class="recording-mode-options">
+                    <div class="mode-option">
+                        <input type="radio" id="microphoneMode" name="recordingMode" value="microphone" checked>
+                        <label for="microphoneMode">Microphone Only</label>
+                    </div>
+                    <div class="mode-option">
+                        <input type="radio" id="systemMode" name="recordingMode" value="system">
+                        <label for="systemMode">System Audio Only</label>
+                    </div>
+                    <div class="mode-option">
+                        <input type="radio" id="bothMode" name="recordingMode" value="both">
+                        <label for="bothMode">Microphone + System Audio</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group audio-source-selector">
                 <label for="audioSource" class="form-label">Input Source</label>
                 <select id="audioSource" class="form-control">
                     <option value="default" selected>Default Microphone</option>
                 </select>
             </div>
-            
-            
             
             <div class="form-group">
                 <label for="wsUrl" class="form-label">WebSocket URL</label>

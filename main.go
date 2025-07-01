@@ -126,6 +126,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Received config: AudioFormat=%+v, LanguageCode=%s, AlternativeLanguageCodes=%v", config.AudioFormat, config.LanguageCode, config.AlternativeLanguageCodes)
+	
+	// Debug: Log the exact format string received
+	log.Printf("Exact audio format received: '%s'", config.AudioFormat.Format)
 
 	ctx := context.Background()
 
@@ -158,12 +161,45 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Using primary language: %s, alternative languages: %v", primaryLanguage, alternativeLanguages)
 
+	// Map audio format string to Google Speech API encoding
+	var encoding speechpb.RecognitionConfig_AudioEncoding
+	formatLower := strings.ToLower(config.AudioFormat.Format)
+	
+	log.Printf("Mapping audio format '%s' to Speech API encoding", config.AudioFormat.Format)
+	
+	switch formatLower {
+	case "linear16":
+		encoding = speechpb.RecognitionConfig_LINEAR16
+		log.Printf("Using LINEAR16 encoding")
+	case "ogg_opus":
+		encoding = speechpb.RecognitionConfig_OGG_OPUS
+		log.Printf("Using OGG_OPUS encoding")
+	case "webm_opus":
+		encoding = speechpb.RecognitionConfig_WEBM_OPUS
+		log.Printf("Using WEBM_OPUS encoding")
+	case "flac":
+		encoding = speechpb.RecognitionConfig_FLAC
+		log.Printf("Using FLAC encoding")
+	case "mulaw":
+		encoding = speechpb.RecognitionConfig_MULAW
+		log.Printf("Using MULAW encoding")
+	default:
+		// Try using the value lookup as fallback
+		if encodingValue, exists := speechpb.RecognitionConfig_AudioEncoding_value[config.AudioFormat.Format]; exists {
+			encoding = speechpb.RecognitionConfig_AudioEncoding(encodingValue)
+			log.Printf("Using encoding from value lookup: %v", encoding)
+		} else {
+			log.Printf("Unknown audio format '%s', defaulting to LINEAR16", config.AudioFormat.Format)
+			encoding = speechpb.RecognitionConfig_LINEAR16
+		}
+	}
+
 	// Configure the streaming recognition request
 	req := speechpb.StreamingRecognizeRequest{
 		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
-					Encoding:                 speechpb.RecognitionConfig_AudioEncoding(speechpb.RecognitionConfig_AudioEncoding_value[config.AudioFormat.Format]),
+					Encoding:                 encoding,
 					SampleRateHertz:          int32(config.AudioFormat.SampleRate),
 					LanguageCode:             primaryLanguage,
 					AlternativeLanguageCodes: alternativeLanguages,
@@ -172,6 +208,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
+	
+	log.Printf("Final Speech API config: Encoding=%v, SampleRate=%d, Language=%s", encoding, config.AudioFormat.SampleRate, primaryLanguage)
 
 	// Create a bidirectional streaming RPC
 	stream, err := client.StreamingRecognize(ctx)
@@ -190,6 +228,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	var fullTranscription strings.Builder
 	var currentSummary string
+	var summaryMu sync.Mutex // Protect currentSummary from race conditions
 
 	// Default prompt for summarization
 	defaultSummaryPrompt := `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
@@ -255,31 +294,46 @@ If this is an update to an existing summary, maintain the structure and content 
 
 					if result.IsFinal {
 						fullTranscription.WriteString(transcriptionText + " ")
+						// Generate summary asynchronously to avoid blocking transcript processing
 						if projectID != "" && location != "" {
-							fullTranscript := strings.TrimSpace(fullTranscription.String())
-							log.Printf("Attempting to generate summary for transcript length: %d, previous summary length: %d", len(fullTranscript), len(currentSummary))
-							summary, err := generateSummary(ctx, projectID, location, fullTranscript, currentSummary, summaryPrompt)
-							if err != nil {
-								log.Printf("Error generating summary: %v", err)
-							} else if summary != "" {
-								currentSummary = summary // Update current summary
-								log.Printf("Generated updated summary: %s", summary)
-								summaryResponse := SummaryResponse{
-									Type:      "summary",
-									Text:      summary,
-									Timestamp: time.Now(),
-								}
-								summaryData, err := json.Marshal(summaryResponse)
+							go func() {
+								fullTranscript := strings.TrimSpace(fullTranscription.String())
+								
+								// Safely read current summary
+								summaryMu.Lock()
+								previousSummary := currentSummary
+								summaryMu.Unlock()
+								
+								log.Printf("Attempting to generate summary for transcript length: %d, previous summary length: %d", len(fullTranscript), len(previousSummary))
+								summary, err := generateSummary(ctx, projectID, location, fullTranscript, previousSummary, summaryPrompt)
 								if err != nil {
-									log.Printf("Failed to marshal summary response: %v", err)
-								} else {
+									log.Printf("Error generating summary: %v", err)
+									return
+								}
+								if summary != "" {
+									// Safely update current summary
+									summaryMu.Lock()
+									currentSummary = summary
+									summaryMu.Unlock()
+									
+									log.Printf("Generated updated summary: %s", summary)
+									summaryResponse := SummaryResponse{
+										Type:      "summary",
+										Text:      summary,
+										Timestamp: time.Now(),
+									}
+									summaryData, err := json.Marshal(summaryResponse)
+									if err != nil {
+										log.Printf("Failed to marshal summary response: %v", err)
+										return
+									}
 									mu.Lock()
 									if err := conn.WriteMessage(websocket.TextMessage, summaryData); err != nil {
 										log.Printf("Failed to send summary to client: %v", err)
 									}
 									mu.Unlock()
 								}
-							}
+							}()
 						}
 					}
 				}
@@ -288,6 +342,7 @@ If this is an update to an existing summary, maintain the structure and content 
 	}()
 
 	// Main loop to read from client and send audio to Speech-to-Text
+	audioChunkCount := 0
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
@@ -299,17 +354,26 @@ If this is an update to an existing summary, maintain the structure and content 
 
 		switch messageType {
 		case websocket.BinaryMessage:
+			audioChunkCount++
+			log.Printf("Received audio chunk #%d: %d bytes", audioChunkCount, len(message))
+			
 			// Send audio content to Speech-to-Text
 			if err := stream.Send(&speechpb.StreamingRecognizeRequest{
 				StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
 					AudioContent: message,
 				},
 			}); err != nil {
-				log.Printf("Failed to send audio to Speech-to-Text: %v", err)
+				log.Printf("Failed to send audio chunk #%d to Speech-to-Text: %v", audioChunkCount, err)
 				return
 			}
+			log.Printf("Successfully sent audio chunk #%d to Speech-to-Text", audioChunkCount)
 		case websocket.TextMessage:
-			log.Printf("Received text message (ignoring for now): %s", string(message))
+			log.Printf("Received text message: %s", string(message))
+			// Check if it's a new config message (for system audio mode)
+			var newConfig ConfigMessage
+			if err := json.Unmarshal(message, &newConfig); err == nil && newConfig.Type == "config" {
+				log.Printf("Received new config message: %+v", newConfig)
+			}
 		}
 	}
 
