@@ -3,10 +3,8 @@
 
 class LiveAudioRecorder {
     constructor() {
-        this.mediaRecorder = null;
         this.socket = null;
         this.micStream = null;
-        this.systemStream = null;
         this.audioContext = null;
         this.analyser = null;
         this.processor = null;
@@ -14,11 +12,6 @@ class LiveAudioRecorder {
         this.recordingStartTime = null;
         this.recordingTimer = null;
         this.visualizerTimer = null;
-    }
-
-    // Check if system audio is supported
-    isSystemAudioSupported() {
-        return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
     }
 
     // Populate audio input devices dropdown
@@ -111,10 +104,8 @@ class LiveAudioRecorder {
         }
     }
 
-    // Start recording audio stream for Vertex AI live transcription
-    async startRecording(wsUrl = null, recordingMode = 'microphone', summaryPrompt = '') {
-        this.summaryPrompt = summaryPrompt;
-        this.recordingMode = recordingMode; // Store recording mode for initial config message
+    // Start recording audio stream for Google Cloud Speech-to-Text live transcription
+    async startRecording(wsUrl = null, languageCodes = []) {
         this.configSent = false; // Flag to ensure config is sent first
         if (this.isRecording) {
             console.warn('Recording already in progress');
@@ -129,19 +120,19 @@ class LiveAudioRecorder {
         this.initVisualizer();
 
         try {
-            this.audioContext = new AudioContext({ sampleRate: 24000 }); // Vertex AI prefers 24kHz
-            const audioStream = await this._setupAudioStreams(recordingMode);
+            this.audioContext = new AudioContext({ sampleRate: 16000 }); // Google Speech-to-Text prefers 16kHz
+            const audioStream = await this._setupAudioStreams();
 
             this._setupAudioContextAndVisualizer(audioStream);
 
             // Set up WebSocket connection
             if (wsUrl) {
-                this._setupWebSocket(wsUrl);
+                this._setupWebSocket(wsUrl, languageCodes);
             } else {
                 this.startAudioProcessing(audioStream);
             }
 
-            console.log(`Live audio recording started in ${recordingMode} mode.`);
+            console.log(`Live audio recording started.`);
         } catch (error) {
             console.error("Error starting recording:", error);
             this.isRecording = false;
@@ -156,57 +147,23 @@ class LiveAudioRecorder {
         }
     }
 
-    async _setupAudioStreams(recordingMode) {
-        let audioStream;
-
-        if (recordingMode === 'microphone' || recordingMode === 'both') {
-            const audioSelect = document.getElementById('audioSource');
-            const micConstraints = {
-                audio: {
-                    deviceId: audioSelect?.value !== 'default' ? { exact: audioSelect.value } : undefined,
-                    sampleRate: 24000,
-                    channelCount: 1,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
-            };
-            this.micStream = await navigator.mediaDevices.getUserMedia(micConstraints);
-            if (!this.micStream || this.micStream.getAudioTracks().length === 0) {
-                throw new Error("No microphone audio tracks available.");
+    async _setupAudioStreams() {
+        const audioSelect = document.getElementById('audioSource');
+        const micConstraints = {
+            audio: {
+                deviceId: audioSelect?.value !== 'default' ? { exact: audioSelect.value } : undefined,
+                sampleRate: this.audioContext.sampleRate,
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
             }
+        };
+        this.micStream = await navigator.mediaDevices.getUserMedia(micConstraints);
+        if (!this.micStream || this.micStream.getAudioTracks().length === 0) {
+            throw new Error("No microphone audio tracks available.");
         }
-
-        if (recordingMode === 'system' || recordingMode === 'both') {
-            if (!this.isSystemAudioSupported()) {
-                throw new Error("System audio recording is not supported in this browser.");
-            }
-            this.systemStream = await navigator.mediaDevices.getDisplayMedia({
-                video: false,
-                audio: true
-            });
-            if (!this.systemStream || this.systemStream.getAudioTracks().length === 0) {
-                throw new Error("No system audio tracks available. Ensure 'Share audio' is selected.");
-            }
-        }
-
-        if (recordingMode === 'both' && this.micStream && this.systemStream) {
-            // Mix streams
-            const destination = this.audioContext.createMediaStreamDestination();
-            const micSource = this.audioContext.createMediaStreamSource(this.micStream);
-            const systemSource = this.audioContext.createMediaStreamSource(this.systemStream);
-
-            micSource.connect(destination);
-            systemSource.connect(destination);
-            audioStream = destination.stream;
-        } else if (this.micStream) {
-            audioStream = this.micStream;
-        } else if (this.systemStream) {
-            audioStream = this.systemStream;
-        } else {
-            throw new Error("No audio stream could be created for the selected mode.");
-        }
-        return audioStream;
+        return this.micStream;
     }
 
     _setupAudioContextAndVisualizer(audioStream) {
@@ -219,17 +176,17 @@ class LiveAudioRecorder {
         this.visualizerTimer = setInterval(() => this.updateVisualizer(), 100);
     }
 
-    _setupWebSocket(wsUrl) {
+    _setupWebSocket(wsUrl, languageCodes) {
         this.socket = new WebSocket(wsUrl);
         this.socket.binaryType = "arraybuffer";
 
-        this.socket.onopen = this._onWebSocketOpen.bind(this);
+        this.socket.onopen = () => this._onWebSocketOpen(languageCodes);
         this.socket.onmessage = this._onWebSocketMessage.bind(this);
         this.socket.onerror = this._onWebSocketError.bind(this);
         this.socket.onclose = this._onWebSocketClose.bind(this);
     }
 
-    // Start audio processing for Vertex AI live streaming
+    // Start audio processing for Google Cloud Speech-to-Text live streaming
     startAudioProcessing(stream) {
         if (!this.audioContext || !stream) {
             console.error("Audio context or stream not available");
@@ -245,7 +202,7 @@ class LiveAudioRecorder {
         source.connect(this.processor);
         this.processor.connect(this.audioContext.destination);
 
-        console.log("Audio processing started for Vertex AI");
+        console.log("Audio processing started for Google Cloud Speech-to-Text");
     }
 
     _onAudioProcess(event) {
@@ -255,37 +212,32 @@ class LiveAudioRecorder {
 
         const inputData = event.inputBuffer.getChannelData(0); // Raw PCM data
         const pcmData16 = this.convertFloat32ToInt16(inputData);
-
-        // Create Vertex AI realtime input format
-        const base64Data = this.arrayBufferToBase64(pcmData16.buffer);
-        const realtimeInput = {
-            media: {
-                data: base64Data,
-                mimeType: 'audio/pcm'
-            }
-        };
-
-        // Send to Vertex AI via WebSocket
-        this.socket.send(JSON.stringify(realtimeInput));
+        console.log(`Sending audio data: ${pcmData16.byteLength} bytes`);
+        // Send raw PCM data as binary message
+        this.socket.send(pcmData16.buffer);
     }
 
-    _onWebSocketOpen() {
-        console.log("WebSocket connection established for Vertex AI live streaming");
+    _onWebSocketOpen(languageCodes) {
+        console.log("WebSocket connection established for Google Cloud Speech-to-Text live streaming");
         // Send initial configuration message with the summary prompt
         const configMessage = {
             type: "config",
-            summaryPrompt: this.summaryPrompt,
-            recordingMode: this.recordingMode
+            audioFormat: {
+                format: "LINEAR16", // Google Speech-to-Text prefers LINEAR16
+                sampleRate: this.audioContext.sampleRate,
+                channels: 1 // Assuming mono audio
+            },
+            languageCodes: languageCodes // Include language codes
         };
         this.socket.send(JSON.stringify(configMessage));
         this.configSent = true;
-        this.startAudioProcessing(this.micStream || this.systemStream); // Pass the actual stream
+        this.startAudioProcessing(this.micStream); // Pass the actual stream
     }
 
     _onWebSocketMessage(event) {
         try {
             const data = JSON.parse(event.data);
-            console.log("Received from Vertex AI:", data);
+            console.log("Received from Google Cloud Speech-to-Text:", data);
 
             if (data.type === "summary") {
                 const summaryEvent = new CustomEvent('summaryupdate', {
@@ -346,9 +298,6 @@ class LiveAudioRecorder {
         if (this.micStream) {
             this.micStream.getTracks().forEach(track => track.stop());
         }
-        if (this.systemStream) {
-            this.systemStream.getTracks().forEach(track => track.stop());
-        }
         
         // Close WebSocket
         if (this.socket) {
@@ -358,12 +307,10 @@ class LiveAudioRecorder {
         
         // Reset references
         this.micStream = null;
-        this.systemStream = null;
-        this.mediaRecorder = null;
         this.audioContext = null;
         this.analyser = null;
         
-        console.log("Vertex AI live audio recording stopped");
+        console.log("Google Cloud Speech-to-Text live audio recording stopped");
     }
 
     // Get current recording state
@@ -381,17 +328,6 @@ class LiveAudioRecorder {
             int16Array[i] = Math.max(-32768, Math.min(32767, float32Array[i] * 32768));
         }
         return int16Array;
-    }
-    
-    // Convert ArrayBuffer to Base64
-    arrayBufferToBase64(buffer) {
-        let binary = '';
-        const bytes = new Uint8Array(buffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
     }
 }
 

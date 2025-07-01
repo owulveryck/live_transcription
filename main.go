@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"time"
 
+	speech "cloud.google.com/go/speech/apiv1"
 	"github.com/gorilla/websocket"
-	"google.golang.org/genai"
+	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1"
 )
 
-// AudioFormat represents the audio stream format
+
+
 type AudioFormat struct {
 	Format     string `json:"format"`
 	SampleRate int    `json:"sampleRate"`
@@ -21,8 +24,9 @@ type AudioFormat struct {
 // ConfigMessage represents the initial configuration sent from the client
 type ConfigMessage struct {
 	Type          string `json:"type"`
-	SummaryPrompt string `json:"summaryPrompt"`
-	RecordingMode string `json:"recordingMode"`
+	AudioFormat   AudioFormat `json:"audioFormat"`
+	LanguageCode  string   `json:"languageCode"`
+	AlternativeLanguageCodes []string `json:"alternativeLanguageCodes"`
 }
 
 // TranscriptionResponse represents the transcription response sent back to the client
@@ -33,11 +37,7 @@ type TranscriptionResponse struct {
 	Final     bool      `json:"final"`
 }
 
-// SummaryResponse represents the summary response sent back to the client
-type SummaryResponse struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
+
 
 // WebSocket upgrader
 var upgrader = websocket.Upgrader{
@@ -46,7 +46,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// handleWebSocket handles WebSocket connections for live audio transcription using Vertex AI
+// handleWebSocket handles WebSocket connections for live audio transcription using Google Cloud Speech-to-Text
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -71,129 +71,106 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Received config: SummaryPrompt=\"%s\", RecordingMode=\"%s\"", config.SummaryPrompt, config.RecordingMode)
+	log.Printf("Received config: AudioFormat=%+v, LanguageCode=%s, AlternativeLanguageCodes=%v", config.AudioFormat, config.LanguageCode, config.AlternativeLanguageCodes)
 
 	ctx := context.Background()
 
-	// Create Vertex AI client
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{Backend: genai.BackendVertexAI})
+	// Create Speech-to-Text client
+	client, err := speech.NewClient(ctx)
 	if err != nil {
-		log.Printf("Failed to create Vertex AI client: %v", err)
+		log.Printf("Failed to create Speech-to-Text client: %v", err)
+		return
+	}
+	defer client.Close()
+
+	// Set default language codes if none are provided by the client
+	primaryLanguage := config.LanguageCode
+	if primaryLanguage == "" {
+		primaryLanguage = "en-US" // Default primary language
+	}
+	alternativeLanguages := config.AlternativeLanguageCodes
+	if len(alternativeLanguages) == 0 && primaryLanguage == "en-US" {
+		alternativeLanguages = []string{"fr-FR", "es-ES"} // Default alternatives if primary is en-US and no alternatives provided
+	}
+
+	log.Printf("Using primary language: %s, alternative languages: %v", primaryLanguage, alternativeLanguages)
+
+	// Configure the streaming recognition request
+	req := speechpb.StreamingRecognizeRequest{
+		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
+			StreamingConfig: &speechpb.StreamingRecognitionConfig{
+				Config: &speechpb.RecognitionConfig{
+					Encoding:        speechpb.RecognitionConfig_AudioEncoding(speechpb.RecognitionConfig_AudioEncoding_value[config.AudioFormat.Format]),
+					SampleRateHertz: int32(config.AudioFormat.SampleRate),
+					LanguageCode:    primaryLanguage,
+					AlternativeLanguageCodes: alternativeLanguages,
+				},
+				InterimResults: true,
+			},
+		},
+	}
+
+	// Create a bidirectional streaming RPC
+	stream, err := client.StreamingRecognize(ctx)
+	if err != nil {
+		log.Printf("Failed to create streaming client: %v", err)
 		return
 	}
 
-	model := "gemini-2.0-flash-live-preview-04-09"
-
-	// Establish live session with Vertex AI, using the provided summary prompt as SystemInstruction
-	session, err := client.Live.Connect(ctx, model, &genai.LiveConnectConfig{
-		InputAudioTranscription:  &genai.AudioTranscriptionConfig{},
-		OutputAudioTranscription: &genai.AudioTranscriptionConfig{},
-		ResponseModalities:       []genai.Modality{genai.ModalityText},
-		SystemInstruction:        genai.Text(config.SummaryPrompt)[0],
-	})
-
-
-	if err != nil {
-		log.Printf("Failed to connect to Vertex AI model: %v", err)
+	// Send the initial configuration message
+	if err := stream.Send(&req); err != nil {
+		log.Printf("Failed to send initial config to Speech-to-Text: %v", err)
 		return
 	}
-	defer session.Close()
 
-	log.Println("Connected to Vertex AI live session")
+	log.Println("Connected to Google Cloud Speech-to-Text streaming session")
 
-	// Goroutine to receive messages from Vertex AI and send to client
+	// Goroutine to receive messages from Speech-to-Text and send to client
 	go func() {
 		for {
-			message, err := session.Receive()
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				// Stream closed
+				return
+			}
 			if err != nil {
-				log.Printf("Error receiving from Vertex AI: %v", err)
+				log.Printf("Error receiving from Speech-to-Text: %v", err)
 				return
 			}
 
-			// Process transcription responses
-			if message.ServerContent != nil && message.ServerContent.InputTranscription != nil {
-				transcriptionText := message.ServerContent.InputTranscription.Text
-				log.Printf("Transcription: %s", transcriptionText)
+			if err := resp.Error; err != nil {
+				log.Printf("Speech-to-Text error: %v", err)
+				continue
+			}
 
-				log.Println(transcriptionText)
-				// Create response for frontend
-				response := TranscriptionResponse{
-					Type:      "transcription",
-					Text:      transcriptionText,
-					Timestamp: time.Now(),
-					Final:     true,
-				}
+			for _, result := range resp.Results {
+				if len(result.Alternatives) > 0 {
+					transcriptionText := result.Alternatives[0].Transcript
+					log.Printf("Transcription: %s (is_final: %t)", transcriptionText, result.IsFinal)
 
-				responseData, err := json.Marshal(response)
-				if err != nil {
-					log.Printf("Failed to marshal transcription response: %v", err)
-					continue
-				}
-
-				if err := conn.WriteMessage(websocket.TextMessage, responseData); err != nil {
-					log.Printf("Failed to send transcription to client: %v", err)
-					return
-				}
-			} else if message.ServerContent != nil {
-				// Attempt to extract text from generic ServerContent
-				var genericContent map[string]interface{}
-				contentBytes, err := json.Marshal(message.ServerContent)
-				if err != nil {
-					log.Printf("Failed to marshal ServerContent to generic map: %v", err)
-					continue
-				}
-				if err := json.Unmarshal(contentBytes, &genericContent); err != nil {
-					log.Printf("Failed to unmarshal ServerContent to generic map: %v", err)
-					continue
-				}
-
-				modelOutputText := ""
-				if candidates, ok := genericContent["candidates"].([]interface{}); ok && len(candidates) > 0 {
-					if candidateMap, ok := candidates[0].(map[string]interface{}); ok {
-						if parts, ok := candidateMap["parts"].([]interface{}); ok && len(parts) > 0 {
-							if partMap, ok := parts[0].(map[string]interface{}); ok {
-								if text, ok := partMap["text"].(string); ok {
-									modelOutputText = text
-								}
-							}
-						}
-					}
-				} else if text, ok := genericContent["text"].(string); ok {
-					modelOutputText = text
-				}
-
-				if modelOutputText != "" {
-					log.Printf("Model Output (generic): %s", modelOutputText)
-
-					response := SummaryResponse{
-						Type: "summary",
-						Text: modelOutputText,
+					response := TranscriptionResponse{
+						Type:      "transcription",
+						Text:      transcriptionText,
+						Timestamp: time.Now(),
+						Final:     result.IsFinal,
 					}
 
 					responseData, err := json.Marshal(response)
 					if err != nil {
-						log.Printf("Failed to marshal summary response (generic): %v", err)
+						log.Printf("Failed to marshal transcription response: %v", err)
 						continue
 					}
 
 					if err := conn.WriteMessage(websocket.TextMessage, responseData); err != nil {
-						log.Printf("Failed to send summary to client (generic): %v", err)
+						log.Printf("Failed to send transcription to client: %v", err)
 						return
 					}
 				}
 			}
-
-			// Log the entire message for debugging
-			messageBytes, err := json.Marshal(message)
-			if err != nil {
-				log.Printf("Failed to marshal Vertex AI response for debugging: %v", err)
-				continue
-			}
-			log.Printf("Full Vertex AI message: %s", messageBytes)
 		}
 	}()
 
-	// Main loop to read from client and send to Vertex AI
+	// Main loop to read from client and send audio to Speech-to-Text
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
@@ -204,25 +181,23 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch messageType {
-		case websocket.TextMessage:
-			// Try to parse as LiveRealtimeInput for Vertex AI
-			var realtimeInput genai.LiveRealtimeInput
-			if err := json.Unmarshal(message, &realtimeInput); err != nil {
-				log.Printf("Failed to parse realtime input: %v", err)
-				continue
-			}
-
-			// Send to Vertex AI
-			session.SendRealtimeInput(realtimeInput)
-			// log.Printf("Sent realtime input to Vertex AI")
-
 		case websocket.BinaryMessage:
-			log.Printf("Received binary message: %d bytes (ignoring for now)", len(message))
-			// Binary messages are not expected in this Vertex AI implementation
-			// The frontend should send JSON messages only
+			// Send audio content to Speech-to-Text
+			if err := stream.Send(&speechpb.StreamingRecognizeRequest{
+				StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
+					AudioContent: message,
+				},
+			}); err != nil {
+				log.Printf("Failed to send audio to Speech-to-Text: %v", err)
+				return
+			}
+		case websocket.TextMessage:
+			log.Printf("Received text message (ignoring for now): %s", string(message))
 		}
 	}
 
+	// Close the Speech-to-Text stream when the WebSocket connection closes
+	stream.CloseSend()
 	log.Println("WebSocket connection closed")
 }
 
@@ -253,3 +228,4 @@ func main() {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
+

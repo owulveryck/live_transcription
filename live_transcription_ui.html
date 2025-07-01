@@ -219,6 +219,7 @@
             display: flex;
             justify-content: space-between;
             margin-top: 30px;
+            gap: 20px; /* Added gap for spacing between new containers */
         }
 
         @media (max-width: 992px) {
@@ -230,6 +231,41 @@
                 margin-right: 0;
                 margin-bottom: 20px;
             }
+        }
+
+        /* New styles for textareas */
+        .transcript-textarea {
+            width: 100%;
+            height: 200px; /* Fixed height for textareas */
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1em;
+            line-height: 1.6;
+            resize: vertical; /* Allow vertical resizing */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            margin-bottom: 15px; /* Space between textareas */
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .transcript-textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .transcription-output-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transcription-output-section h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
         }
 
         .transcription-output {
@@ -360,29 +396,18 @@
                 </select>
             </div>
             
-            <div class="form-group">
-                <label class="form-label">Recording Mode</label>
-                <div class="recording-mode-options">
-                    <label class="mode-option">
-                        <input type="radio" name="recordingMode" value="microphone" checked>
-                        <span>Microphone</span>
-                    </label>
-                    <label class="mode-option">
-                        <input type="radio" name="recordingMode" value="system">
-                        <span>System Audio</span>
-                    </label>
-                    <label class="mode-option">
-                        <input type="radio" name="recordingMode" value="both">
-                        <span>Both</span>
-                    </label>
-                </div>
-                <p class="form-hint">System audio works best in Chrome/Edge. Select "Share audio" when prompted.</p>
-            </div>
+            
             
             <div class="form-group">
                 <label for="wsUrl" class="form-label">WebSocket URL</label>
                 <input type="text" id="wsUrl" class="form-control" placeholder="ws://localhost:8080/ws" value="ws://localhost:8080/ws">
                 <p class="form-hint">Backend WebSocket endpoint for live transcription</p>
+            </div>
+
+            <div class="form-group">
+                <label for="languageCodes" class="form-label">Language Codes (comma-separated)</label>
+                <input type="text" id="languageCodes" class="form-control" placeholder="e.g., en-US,fr-FR,es-ES" value="en-US,fr-FR,es-ES">
+                <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
             </div>
             
             <button id="startBtn" class="btn btn-primary" onclick="startLiveTranscription()">
@@ -412,9 +437,14 @@
         </div>
         
         <div class="main-content-area">
-            <div class="transcription-container">
+            <div class="transcription-output-section">
+                <h2>Interim Transcript</h2>
+                <textarea id="interimTranscriptOutput" class="transcript-textarea" readonly placeholder="Interim transcription will appear here..."></textarea>
+            </div>
+
+            <div class="transcription-output-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2>Live Transcription Output</h2>
+                    <h2>Final Transcript</h2>
                     <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled>
                         Clear Transcripts
                     </button>
@@ -435,21 +465,7 @@
                     </div>
                 </div>
                 
-                <div id="transcriptionOutput" class="transcription-output empty">
-                    No transcription yet. Start recording to see live results...
-                </div>
-            </div>
-
-            <div class="summary-container">
-                <h2>Live Summary & Key Points</h2>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label for="summaryPrompt" class="form-label">Summary Prompt</label>
-                    <textarea id="summaryPrompt" class="form-control" rows="3">Summarize the key discussion points and action items from the ongoing conversation.</textarea>
-                    <p class="form-hint">This prompt will guide the AI in generating the summary.</p>
-                </div>
-                <div id="summaryOutput" class="summary-output empty">
-                    Summary will appear here as transcription progresses...
-                </div>
+                <textarea id="finalTranscriptOutput" class="transcript-textarea" readonly placeholder="Final transcription will be appended here..."></textarea>
             </div>
         </div>
     </div>
@@ -480,6 +496,8 @@
             const data = event.detail;
             updateTranscriptionOutput(data);
         });
+
+        
 
         // Listen for recorder errors
         document.addEventListener('recordererror', function(event) {
@@ -527,73 +545,43 @@
         }
 
         function updateTranscriptionOutput(data) {
-            const output = document.getElementById('transcriptionOutput');
+            const interimOutput = document.getElementById('interimTranscriptOutput');
+            const finalOutput = document.getElementById('finalTranscriptOutput');
             
-            if (output.classList.contains('empty')) {
-                output.classList.remove('empty');
-                output.innerHTML = '';
-            }
-
-            // Create transcript entry based on data type
-            const entry = document.createElement('div');
-            entry.className = 'transcript-entry';
-            
-            let entryType = 'interim';
             let displayText = '';
-            let timestamp = new Date().toLocaleTimeString();
             
             if (data.type === 'transcription') {
-                entryType = data.final ? 'final' : 'interim';
                 displayText = data.text || '';
-                if (data.timestamp) {
-                    timestamp = new Date(data.timestamp).toLocaleTimeString();
+                if (data.final) {
+                    finalOutput.value += displayText + '\n'; // Append final transcript
+                    interimOutput.value = ''; // Clear interim
+                    // Update stats for final transcriptions
+                    if (displayText.trim()) {
+                        transcriptionStats.count++;
+                        transcriptionStats.words += displayText.trim().split(/\s+/).length;
+                        updateStats();
+                    }
+                } else {
+                    interimOutput.value = displayText; // Update interim transcript
                 }
             } else if (data.type === 'response') {
-                entryType = 'response';
-                displayText = data.text || '';
-                entry.classList.add('response');
+                // Handle AI responses if needed, perhaps in the final transcript or a separate area
+                finalOutput.value += `AI Response: ${data.text || ''}\n`;
             } else {
-                // Handle legacy format
+                // Handle legacy format as final
                 displayText = data.text || data.transcript || data;
-                entryType = 'final';
-            }
-
-            if (entryType === 'final') {
-                entry.classList.add('final');
-            } else if (entryType === 'interim') {
-                entry.classList.add('interim');
-            }
-
-            const metaDiv = document.createElement('div');
-            metaDiv.className = 'transcript-meta';
-            metaDiv.textContent = `${timestamp} • ${entryType === 'response' ? 'AI Response' : (entryType === 'final' ? 'Final' : 'Interim')}`;
-            
-            const textDiv = document.createElement('div');
-            textDiv.className = 'transcript-text';
-            textDiv.textContent = displayText;
-            
-            entry.appendChild(metaDiv);
-            entry.appendChild(textDiv);
-
-            // For interim results, replace the last interim entry if it exists
-            if (entryType === 'interim') {
-                const lastEntry = output.lastElementChild;
-                if (lastEntry && lastEntry.classList.contains('interim')) {
-                    output.removeChild(lastEntry);
+                finalOutput.value += displayText + '\n';
+                interimOutput.value = '';
+                // Update stats for final transcriptions
+                if (displayText.trim()) {
+                    transcriptionStats.count++;
+                    transcriptionStats.words += displayText.trim().split(/\s+/).length;
+                    updateStats();
                 }
             }
 
-            output.appendChild(entry);
-            
-            // Update stats for final transcriptions
-            if (entryType === 'final' && displayText.trim()) {
-                transcriptionStats.count++;
-                transcriptionStats.words += displayText.trim().split(/\s+/).length;
-                updateStats();
-            }
-
-            // Scroll to bottom
-            output.scrollTop = output.scrollHeight;
+            // Scroll to bottom for final transcript
+            finalOutput.scrollTop = finalOutput.scrollHeight;
         }
 
         function updateStats() {
@@ -609,9 +597,8 @@
         }
 
         function clearTranscripts() {
-            const output = document.getElementById('transcriptionOutput');
-            output.classList.add('empty');
-            output.textContent = 'No transcription yet. Start recording to see live results...';
+            document.getElementById('interimTranscriptOutput').value = '';
+            document.getElementById('finalTranscriptOutput').value = '';
             
             // Reset stats
             transcriptionStats.count = 0;
@@ -621,6 +608,8 @@
             document.getElementById('statsContainer').style.display = 'none';
             document.getElementById('clearBtn').disabled = true;
         }
+
+        
 
         async function startLiveTranscription() {
             if (!audioRecorder) {
@@ -637,18 +626,15 @@
             try {
                 updateConnectionStatus('connecting', 'Connecting...');
                 
-                const recordingMode = document.querySelector('input[name="recordingMode"]:checked').value;
-                const summaryPrompt = document.getElementById('summaryPrompt').value.trim();
-                await audioRecorder.startRecording(wsUrl, recordingMode, summaryPrompt);
+                await audioRecorder.startRecording(wsUrl, languageCodes);
                 
                 // Initialize session tracking
                 transcriptionStats.sessionStart = Date.now();
                 sessionTimer = setInterval(updateStats, 1000);
                 
                 // Clear previous transcription display
-                const output = document.getElementById('transcriptionOutput');
-                output.classList.add('empty');
-                output.textContent = 'Listening for audio...';
+                document.getElementById('interimTranscriptOutput').value = 'Listening for audio...';
+                document.getElementById('finalTranscriptOutput').value = '';
                 
             } catch (error) {
                 console.error('Error starting live transcription:', error);
@@ -684,21 +670,13 @@
             updateConnectionStatus('disconnected', 'Disconnected');
             
             // Add session end marker
-            const output = document.getElementById('transcriptionOutput');
-            if (!output.classList.contains('empty')) {
-                const endEntry = document.createElement('div');
-                endEntry.className = 'transcript-entry';
-                endEntry.style.textAlign = 'center';
-                endEntry.style.fontStyle = 'italic';
-                endEntry.style.color = '#6c757d';
-                endEntry.style.borderLeft = '4px solid #6c757d';
-                endEntry.innerHTML = '<div class="transcript-text">--- Recording session ended ---</div>';
-                output.appendChild(endEntry);
-                output.scrollTop = output.scrollHeight;
+            const finalOutput = document.getElementById('finalTranscriptOutput');
+            if (finalOutput.value.trim() !== '') {
+                finalOutput.value += '\n--- Recording session ended ---\n';
             } else {
-                output.classList.add('empty');
-                output.textContent = 'No transcription received. Start recording to see live results...';
+                finalOutput.value = 'No transcription received. Start recording to see live results...\n';
             }
+            document.getElementById('interimTranscriptOutput').value = ''; // Clear interim on stop
         }
 
         // Make functions globally accessible
