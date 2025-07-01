@@ -11,13 +11,89 @@
         constructor() {
             this.socket = null;
             this.micStream = null;
+            this.systemStream = null;
+            this.combinedStream = null;
             this.audioContext = null;
             this.analyser = null;
             this.processor = null;
+            this.mediaRecorder = null;
             this.isRecording = false;
             this.recordingStartTime = null;
             this.recordingTimer = null;
             this.visualizerTimer = null;
+        }
+
+        // Check if the browser supports system audio capture
+        isSystemAudioSupported() {
+            // Check if getDisplayMedia is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                console.warn("getDisplayMedia API not available");
+                return false;
+            }
+            
+            // Check browser compatibility
+            const ua = navigator.userAgent.toLowerCase();
+            
+            // Safari currently doesn't support system audio capture
+            if (ua.includes('safari') && !ua.includes('chrome') && !ua.includes('edg')) {
+                console.warn("Safari detected - system audio not supported");
+                return false;
+            }
+            
+            // Check Chrome/Edge version
+            if (ua.includes('chrome') || ua.includes('edg')) {
+                const chromeMatch = ua.match(/chrom(?:e|ium)\/([0-9]+)/);
+                if (chromeMatch && parseInt(chromeMatch[1]) < 74) {
+                    console.warn("Chrome version < 74, system audio may not be supported");
+                    return false;
+                }
+                return true;
+            }
+            
+            // Firefox supports it but with limitations
+            if (ua.includes('firefox')) {
+                console.warn("Firefox has limited support for system audio capture");
+                return true;
+            }
+            
+            return false;
+        }
+
+        // Function to show/hide audio source dropdown based on recording mode
+        updateAudioSourceVisibility() {
+            const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
+            const audioSourceContainer = document.querySelector('.audio-source-selector');
+            
+            if (recordingMode === 'microphone' || recordingMode === 'both') {
+                if (audioSourceContainer) audioSourceContainer.style.display = 'block';
+            } else {
+                if (audioSourceContainer) audioSourceContainer.style.display = 'none';
+            }
+            
+            // Show browser compatibility warning if needed
+            const systemAudioSupported = this.isSystemAudioSupported();
+            if ((recordingMode === 'system' || recordingMode === 'both') && !systemAudioSupported) {
+                const warningEl = document.getElementById('browserWarning');
+                if (!warningEl) {
+                    const warning = document.createElement('div');
+                    warning.id = 'browserWarning';
+                    warning.className = 'browser-warning';
+                    warning.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+                        </svg>
+                        <span>System audio recording is not supported in this browser. Please use Chrome or Edge for this feature.</span>
+                    `;
+                    const controlPanel = document.querySelector('.control-panel');
+                    if (controlPanel) controlPanel.appendChild(warning);
+                }
+            } else {
+                const warningEl = document.getElementById('browserWarning');
+                if (warningEl) {
+                    warningEl.remove();
+                }
+            }
         }
 
         // Populate audio input devices dropdown
@@ -52,6 +128,15 @@
                 });
                 
                 console.log(`Found ${audioInputDevices.length} audio input devices`);
+                
+                // Set up recording mode change listeners
+                document.querySelectorAll('input[name="recordingMode"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.updateAudioSourceVisibility());
+                });
+                
+                // Initialize visibility
+                this.updateAudioSourceVisibility();
+                
             } catch (err) {
                 console.error('Error enumerating audio devices:', err);
                 const errorEvent = new CustomEvent('recordererror', { detail: { message: 'Error enumerating audio devices: ' + err.message } });
@@ -146,6 +231,14 @@
                 // Clean up on error
                 if (this.recordingTimer) clearInterval(this.recordingTimer);
                 if (this.visualizerTimer) clearInterval(this.visualizerTimer);
+                if (this.micStream) {
+                    this.micStream.getTracks().forEach(track => track.stop());
+                    this.micStream = null;
+                }
+                if (this.systemStream) {
+                    this.systemStream.getTracks().forEach(track => track.stop());
+                    this.systemStream = null;
+                }
 
                 const errorEvent = new CustomEvent('recordererror', { detail: { message: 'Error starting recording: ' + error.message } });
                 document.dispatchEvent(errorEvent);
@@ -154,22 +247,137 @@
         }
 
         async _setupAudioStreams() {
+            const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
             const audioSelect = document.getElementById('audioSource');
-            const micConstraints = {
-                audio: {
-                    deviceId: audioSelect?.value !== 'default' ? { exact: audioSelect.value } : undefined,
-                    sampleRate: this.audioContext.sampleRate,
-                    channelCount: 1,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
+            
+            let finalStream;
+            
+            // Handle microphone audio
+            if (recordingMode === 'microphone' || recordingMode === 'both') {
+                const micConstraints = {
+                    audio: {
+                        deviceId: audioSelect?.value !== 'default' ? { exact: audioSelect.value } : undefined,
+                        sampleRate: this.audioContext.sampleRate,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                };
+                this.micStream = await navigator.mediaDevices.getUserMedia(micConstraints);
+                if (!this.micStream || this.micStream.getAudioTracks().length === 0) {
+                    throw new Error("No microphone audio tracks available.");
                 }
-            };
-            this.micStream = await navigator.mediaDevices.getUserMedia(micConstraints);
-            if (!this.micStream || this.micStream.getAudioTracks().length === 0) {
-                throw new Error("No microphone audio tracks available.");
+                finalStream = this.micStream;
             }
-            return this.micStream;
+            
+            // Handle system audio
+            if (recordingMode === 'system' || recordingMode === 'both') {
+                if (!this.isSystemAudioSupported()) {
+                    if (recordingMode === 'system') {
+                        throw new Error("Your browser doesn't support system audio capture. Try using Chrome or Edge browser.");
+                    } else {
+                        console.warn("System audio capture is not supported in your browser. Recording microphone only.");
+                        return finalStream || this.micStream;
+                    }
+                }
+                
+                try {
+                    // Request system audio (this will prompt the user to share their screen/audio)
+                    this.systemStream = await navigator.mediaDevices.getDisplayMedia({ 
+                        video: true,  // Need video: true for many browsers
+                        audio: true
+                    });
+                    
+                    // Check if user actually shared audio
+                    const hasAudio = this.systemStream.getAudioTracks().length > 0;
+                    if (!hasAudio) {
+                        if (recordingMode === 'system') {
+                            throw new Error("No system audio was shared. Make sure to select 'Share audio' when prompted.");
+                        } else {
+                            console.warn("No system audio was shared. Recording microphone only.");
+                            return finalStream || this.micStream;
+                        }
+                    }
+                    
+                    console.log('System audio capture enabled');
+                    console.log('System audio tracks:', this.systemStream.getAudioTracks().length);
+                    
+                    // Turn off video tracks as we only need audio
+                    this.systemStream.getVideoTracks().forEach(track => {
+                        track.enabled = false;
+                    });
+                    
+                    // Ensure audio tracks remain enabled
+                    this.systemStream.getAudioTracks().forEach(track => {
+                        track.enabled = true;
+                    });
+                    
+                    if (recordingMode === 'system') {
+                        finalStream = this.systemStream;
+                    } else if (recordingMode === 'both' && this.micStream) {
+                        // Combine streams
+                        finalStream = await this._combineAudioStreams(this.micStream, this.systemStream);
+                        this.combinedStream = finalStream; // Store the combined stream
+                    } else {
+                        finalStream = this.systemStream;
+                    }
+                    
+                } catch (err) {
+                    console.error("Error getting system audio:", err);
+                    if (recordingMode === 'system') {
+                        if (err.name === 'NotAllowedError') {
+                            throw new Error("Permission denied. Please allow screen sharing with audio.");
+                        } else if (err.name === 'NotSupportedError') {
+                            throw new Error("System audio capture is not supported in your browser configuration.");
+                        } else {
+                            throw err;
+                        }
+                    } else {
+                        console.warn("Could not capture system audio. Recording microphone only.");
+                        return finalStream || this.micStream;
+                    }
+                }
+            }
+            
+            return finalStream;
+        }
+        
+        async _combineAudioStreams(micStream, systemStream) {
+            try {
+                console.log("Mixing microphone and system audio streams");
+                
+                // Create audio context for proper mixing
+                const mixingContext = new AudioContext();
+                
+                // Create media stream destination for mixed output
+                const dest = mixingContext.createMediaStreamDestination();
+                
+                // Connect microphone to the destination
+                if (micStream && micStream.getAudioTracks().length > 0) {
+                    const micSource = mixingContext.createMediaStreamSource(micStream);
+                    micSource.connect(dest);
+                    console.log("Connected microphone to audio mixer");
+                }
+                
+                // Connect system audio to the destination
+                if (systemStream && systemStream.getAudioTracks().length > 0) {
+                    const sysSource = mixingContext.createMediaStreamSource(systemStream);
+                    sysSource.connect(dest);
+                    console.log("Connected system audio to audio mixer");
+                }
+                
+                // Use the destination stream which contains the mixed audio
+                const finalStream = dest.stream;
+                console.log("Created mixed audio stream with tracks:", finalStream.getAudioTracks().length);
+                
+                return finalStream;
+                
+            } catch (error) {
+                console.error("Error mixing audio streams:", error);
+                // Fallback to just microphone if mixing fails
+                return micStream;
+            }
         }
 
         _setupAudioContextAndVisualizer(audioStream) {
@@ -190,6 +398,226 @@
             this.socket.onmessage = this._onWebSocketMessage.bind(this);
             this.socket.onerror = this._onWebSocketError.bind(this);
             this.socket.onclose = this._onWebSocketClose.bind(this);
+        }
+
+        _setupMediaRecorder(languageCodes) {
+            const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
+            let streamToRecord;
+            
+            if (recordingMode === 'system') {
+                // Create a clean stream with just the system audio track (like in working sample)
+                if (this.systemStream && this.systemStream.getAudioTracks().length > 0) {
+                    const audioTrack = this.systemStream.getAudioTracks()[0];
+                    streamToRecord = new MediaStream([audioTrack]);
+                    console.log("Created clean system audio stream");
+                }
+            } else if (recordingMode === 'both') {
+                // For 'both' mode, we need to use the combined stream
+                // The combined stream should be stored in a property after mixing
+                streamToRecord = this.combinedStream || this.systemStream;
+            } else {
+                streamToRecord = this.micStream;
+            }
+            
+            if (!streamToRecord) {
+                console.error("No stream available for MediaRecorder");
+                return;
+            }
+            
+            // Validate stream has active audio tracks
+            const audioTracks = streamToRecord.getAudioTracks();
+            console.log(`Stream has ${audioTracks.length} audio tracks`);
+            
+            if (audioTracks.length === 0) {
+                console.error("Stream has no audio tracks");
+                return;
+            }
+            
+            // Check if tracks are active
+            const activeTracks = audioTracks.filter(track => track.readyState === 'live');
+            console.log(`${activeTracks.length} audio tracks are active`);
+            
+            if (activeTracks.length === 0) {
+                console.error("No active audio tracks in stream");
+                return;
+            }
+            
+            // Determine the actual format based on what MediaRecorder will use
+            let actualFormat = "WEBM_OPUS"; // Default fallback
+            let actualSampleRate = 48000;
+            
+            // Check what format will actually be used
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                actualFormat = "WEBM_OPUS";
+            } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                actualFormat = "OGG_OPUS";
+            } else {
+                // If neither Opus format is supported, we'll need to handle it differently
+                console.warn("Neither WebM nor OGG Opus is supported, using LINEAR16 fallback");
+                actualFormat = "LINEAR16";
+                actualSampleRate = 16000;
+            }
+            
+            // Send config message for the backend
+            const configMessage = {
+                type: "config",
+                audioFormat: {
+                    format: actualFormat,
+                    sampleRate: actualSampleRate,
+                    channels: 1
+                },
+                languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
+                alternativeLanguageCodes: languageCodes.slice(1)
+            };
+            console.log("📤 Sending config message for MediaRecorder:", configMessage);
+            this.socket.send(JSON.stringify(configMessage));
+            
+            // Set up MediaRecorder with the format that matches our config
+            let options = {};
+            let selectedMimeType = '';
+            
+            if (actualFormat === "WEBM_OPUS" && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                options.mimeType = 'audio/webm;codecs=opus';
+                selectedMimeType = 'audio/webm;codecs=opus';
+            } else if (actualFormat === "OGG_OPUS" && MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                options.mimeType = 'audio/ogg;codecs=opus';
+                selectedMimeType = 'audio/ogg;codecs=opus';
+            } else {
+                // Fallback to best available format
+                const mimeTypes = [
+                    'audio/webm;codecs=opus',
+                    'audio/ogg;codecs=opus', 
+                    'audio/webm',
+                    'audio/mp4',
+                    'audio/mpeg',
+                    '' // Default (browser chooses)
+                ];
+                
+                for (const mimeType of mimeTypes) {
+                    if (mimeType === '' || MediaRecorder.isTypeSupported(mimeType)) {
+                        if (mimeType !== '') {
+                            options.mimeType = mimeType;
+                        }
+                        selectedMimeType = mimeType || 'default';
+                        console.log(`Fallback to MIME type: ${selectedMimeType}`);
+                        break;
+                    }
+                }
+            }
+            
+            console.log(`MediaRecorder will use MIME type: ${selectedMimeType}`);
+            console.log(`Config format: ${actualFormat}, MediaRecorder format: ${selectedMimeType}`);
+            
+            // Try to create MediaRecorder with different configurations
+            try {
+                this.mediaRecorder = new MediaRecorder(streamToRecord, options);
+            } catch (error) {
+                console.error("Failed to create MediaRecorder with options:", options, error);
+                
+                // Try without any options (let browser choose)
+                try {
+                    console.log("Trying MediaRecorder without options");
+                    this.mediaRecorder = new MediaRecorder(streamToRecord);
+                } catch (fallbackError) {
+                    console.error("Failed to create MediaRecorder even without options:", fallbackError);
+                    return;
+                }
+            }
+            
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0 && this.socket && this.socket.readyState === WebSocket.OPEN) {
+                    console.log(`🎵 Sending MediaRecorder data: ${event.data.size} bytes`);
+                    this.socket.send(event.data);
+                }
+            };
+            
+            this.mediaRecorder.onerror = (event) => {
+                console.error("MediaRecorder error:", event.error);
+            };
+            
+            // Start recording with small chunks for real-time processing
+            try {
+                this.mediaRecorder.start(250); // 250ms chunks
+                console.log("MediaRecorder started for system audio");
+            } catch (error) {
+                console.error("Failed to start MediaRecorder:", error);
+                console.error("Stream state:", streamToRecord.active ? "active" : "inactive");
+                console.error("Audio tracks state:", audioTracks.map(track => ({
+                    id: track.id,
+                    kind: track.kind,
+                    readyState: track.readyState,
+                    enabled: track.enabled,
+                    muted: track.muted
+                })));
+                
+                // Try creating a compatible stream through AudioContext
+                console.log("Attempting AudioContext workaround for system audio");
+                try {
+                    this._setupSystemAudioWithAudioContext(streamToRecord, languageCodes);
+                    return;
+                } catch (contextError) {
+                    console.error("AudioContext workaround also failed:", contextError);
+                    throw error;
+                }
+            }
+        }
+
+        _setupSystemAudioWithAudioContext(systemStream, languageCodes) {
+            console.log("Setting up system audio processing with AudioContext");
+            
+            // Create AudioContext if not exists
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // Create audio source from system stream
+            const source = this.audioContext.createMediaStreamSource(systemStream);
+            
+            // Create destination for a new stream
+            const destination = this.audioContext.createMediaStreamDestination();
+            
+            // Connect source to destination
+            source.connect(destination);
+            
+            // Use the new stream for MediaRecorder
+            const compatibleStream = destination.stream;
+            
+            // Update config for AudioContext approach
+            const configMessage = {
+                type: "config",
+                audioFormat: {
+                    format: "LINEAR16", // Use PCM format for AudioContext approach
+                    sampleRate: this.audioContext.sampleRate,
+                    channels: 1
+                },
+                languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
+                alternativeLanguageCodes: languageCodes.slice(1)
+            };
+            console.log("📤 Sending config message for AudioContext approach:", configMessage);
+            this.socket.send(JSON.stringify(configMessage));
+            
+            // Set up MediaRecorder with the compatible stream
+            try {
+                this.mediaRecorder = new MediaRecorder(compatibleStream);
+                
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0 && this.socket && this.socket.readyState === WebSocket.OPEN) {
+                        console.log(`🎵 Sending system audio data via AudioContext: ${event.data.size} bytes`);
+                        this.socket.send(event.data);
+                    }
+                };
+                
+                this.mediaRecorder.onerror = (event) => {
+                    console.error("MediaRecorder error (AudioContext approach):", event.error);
+                };
+                
+                this.mediaRecorder.start(250);
+                console.log("MediaRecorder started with AudioContext workaround");
+                
+            } catch (error) {
+                console.error("Failed to start MediaRecorder with AudioContext approach:", error);
+                throw error;
+            }
         }
 
         // Start audio processing for Google Cloud Speech-to-Text live streaming
@@ -226,21 +654,29 @@
 
         _onWebSocketOpen(languageCodes) {
             console.log("🔗 WebSocket connection established for Google Cloud Speech-to-Text live streaming");
-            // Send initial configuration message with the summary prompt
-            const configMessage = {
-                type: "config",
-                audioFormat: {
-                    format: "LINEAR16", // Google Speech-to-Text prefers LINEAR16
-                    sampleRate: this.audioContext.sampleRate,
-                    channels: 1 // Assuming mono audio
-                },
-                languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
-                alternativeLanguageCodes: languageCodes.slice(1)
-            };
-            console.log("📤 Sending config message:", configMessage);
-            this.socket.send(JSON.stringify(configMessage));
-            this.configSent = true;
-            this.startAudioProcessing(this.micStream); // Pass the actual stream
+            
+            const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
+            
+            // For system audio or mixed mode, use MediaRecorder approach
+            if (recordingMode === 'system' || recordingMode === 'both') {
+                this._setupMediaRecorder(languageCodes);
+            } else {
+                // For microphone only, use the original PCM approach
+                const configMessage = {
+                    type: "config",
+                    audioFormat: {
+                        format: "LINEAR16",
+                        sampleRate: this.audioContext.sampleRate,
+                        channels: 1
+                    },
+                    languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
+                    alternativeLanguageCodes: languageCodes.slice(1)
+                };
+                console.log("📤 Sending config message:", configMessage);
+                this.socket.send(JSON.stringify(configMessage));
+                this.configSent = true;
+                this.startAudioProcessing(this.micStream);
+            }
         }
 
         _onWebSocketMessage(event) {
@@ -310,6 +746,17 @@
             // Stop media tracks
             if (this.micStream) {
                 this.micStream.getTracks().forEach(track => track.stop());
+                this.micStream = null;
+            }
+            
+            if (this.systemStream) {
+                this.systemStream.getTracks().forEach(track => track.stop());
+                this.systemStream = null;
+            }
+            
+            if (this.combinedStream) {
+                this.combinedStream.getTracks().forEach(track => track.stop());
+                this.combinedStream = null;
             }
             
             // Close WebSocket
@@ -319,9 +766,9 @@
             }
             
             // Reset references
-            this.micStream = null;
             this.audioContext = null;
             this.analyser = null;
+            this.mediaRecorder = null;
             
             console.log("Google Cloud Speech-to-Text live audio recording stopped");
         }
