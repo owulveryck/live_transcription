@@ -28,14 +28,41 @@
         }
 
         .control-panel {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
             margin-bottom: 30px;
             padding: 20px;
             background: #f8f9fa;
             border-radius: 8px;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+        }
+
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-section h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 1rem;
+            font-weight: 600;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
             align-items: end;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
         }
 
         .form-group {
@@ -464,52 +491,73 @@
         
         
         <div class="control-panel">
-            <div class="form-group">
-                <label class="form-label">Recording Mode</label>
-                <div class="recording-mode-options">
-                    <div class="mode-option">
-                        <input type="radio" id="microphoneMode" name="recordingMode" value="microphone" checked>
-                        <label for="microphoneMode">Microphone Only</label>
+            <!-- Audio Configuration Section -->
+            <div class="control-section">
+                <h3>Audio Configuration</h3>
+                <div class="control-row">
+                    <div class="form-group">
+                        <label class="form-label">Recording Mode</label>
+                        <div class="recording-mode-options">
+                            <div class="mode-option">
+                                <input type="radio" id="microphoneMode" name="recordingMode" value="microphone" checked>
+                                <label for="microphoneMode">Microphone Only</label>
+                            </div>
+                            <div class="mode-option">
+                                <input type="radio" id="systemMode" name="recordingMode" value="system">
+                                <label for="systemMode">System Audio Only</label>
+                            </div>
+                            <div class="mode-option">
+                                <input type="radio" id="bothMode" name="recordingMode" value="both">
+                                <label for="bothMode">Microphone + System Audio</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mode-option">
-                        <input type="radio" id="systemMode" name="recordingMode" value="system">
-                        <label for="systemMode">System Audio Only</label>
+                    
+                    <div class="form-group audio-source-selector">
+                        <label for="audioSource" class="form-label">Input Source</label>
+                        <select id="audioSource" class="form-control">
+                            <option value="default" selected>Default Microphone</option>
+                        </select>
                     </div>
-                    <div class="mode-option">
-                        <input type="radio" id="bothMode" name="recordingMode" value="both">
-                        <label for="bothMode">Microphone + System Audio</label>
+                </div>
+            </div>
+
+            <!-- Language Settings Section -->
+            <div class="control-section">
+                <h3>Language Settings</h3>
+                <div class="control-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="languageCodes" class="form-label">Language Codes (comma-separated)</label>
+                        <input type="text" id="languageCodes" class="form-control" placeholder="e.g., en-US,fr-FR,es-ES" value="en-US,fr-FR,es-ES">
+                        <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
                     </div>
                 </div>
             </div>
             
-            <div class="form-group audio-source-selector">
-                <label for="audioSource" class="form-label">Input Source</label>
-                <select id="audioSource" class="form-control">
-                    <option value="default" selected>Default Microphone</option>
-                </select>
+            <!-- Recording Controls Section -->
+            <div class="control-section">
+                <h3>Recording Controls</h3>
+                <div class="action-buttons">
+                    <button id="startBtn" class="btn btn-primary">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
+                            <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
+                        </svg>
+                        Start Live Transcription
+                    </button>
+                    
+                    <button id="stopBtn" class="btn btn-danger" disabled>
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
+                        </svg>
+                        Stop Transcription
+                    </button>
+                    
+                    <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled>
+                        Clear Transcripts
+                    </button>
+                </div>
             </div>
-            
-
-            <div class="form-group">
-                <label for="languageCodes" class="form-label">Language Codes (comma-separated)</label>
-                <input type="text" id="languageCodes" class="form-control" placeholder="e.g., en-US,fr-FR,es-ES" value="en-US,fr-FR,es-ES">
-                <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
-            </div>
-            
-            <button id="startBtn" class="btn btn-primary">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
-                    <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
-                </svg>
-                Start Live Transcription
-            </button>
-            
-            <button id="stopBtn" class="btn btn-danger" disabled>
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
-                </svg>
-                Stop Transcription
-            </button>
         </div>
         
         <div id="recordingStatus" class="recording-status hidden">
@@ -528,25 +576,20 @@
             <textarea id="interimTranscriptOutput" class="interim-transcript-box" readonly placeholder="Interim transcription will appear here..."></textarea>
         </div>
 
-        <!-- Stats and Controls -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div id="statsContainer" class="stats-container" style="display: none; margin-bottom: 0;">
-                <div class="stat-item">
-                    <div class="stat-value" id="transcriptCount">0</div>
-                    <div>Transcripts</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="wordsCount">0</div>
-                    <div>Words</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="sessionTime">00:00</div>
-                    <div>Session Time</div>
-                </div>
+        <!-- Session Statistics -->
+        <div id="statsContainer" class="stats-container" style="display: none; margin-bottom: 20px;">
+            <div class="stat-item">
+                <div class="stat-value" id="transcriptCount">0</div>
+                <div>Transcripts</div>
             </div>
-            <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled>
-                Clear Transcripts
-            </button>
+            <div class="stat-item">
+                <div class="stat-value" id="wordsCount">0</div>
+                <div>Words</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="sessionTime">00:00</div>
+                <div>Session Time</div>
+            </div>
         </div>
 
         <!-- Main Content Area - Final Transcript and Summary side by side -->
