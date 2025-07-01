@@ -610,6 +610,12 @@
                 let sessionSeconds = 0;
                 let rawSummaryMarkdown = ''; // Store raw markdown content for copying
 
+                function scrollToBottom(element) {
+                    // Use setTimeout to ensure the DOM has updated before scrolling
+                    setTimeout(() => {
+                        element.scrollTop = element.scrollHeight;
+                    }, 10);
+                }
 
                 function resetStats() {
                     totalWords = 0;
@@ -694,6 +700,7 @@
                         if (data.final) {
                             console.log('✅ Adding final transcript to UI');
                             finalTranscriptOutput.value += data.text + '\n';
+                            scrollToBottom(finalTranscriptOutput);
                             interimTranscriptOutput.value = '';
                             finalTranscriptEntries++;
                             transcriptCountSpan.textContent = finalTranscriptEntries;
@@ -721,12 +728,14 @@
                             const renderedMarkdown = marked.parse(data.text);
                             summaryOutput.innerHTML = renderedMarkdown;
                             summaryOutput.classList.remove('empty');
+                            scrollToBottom(summaryOutput);
                             console.log('✅ Summary markdown rendered and added to UI');
                         } catch (error) {
                             console.error('❌ Error rendering markdown:', error);
                             // Fallback to plain text
                             summaryOutput.textContent = data.text;
                             summaryOutput.classList.remove('empty');
+                            scrollToBottom(summaryOutput);
                             console.log('⚠️ Fallback: Summary added as plain text');
                         }
                         copySummaryBtn.disabled = false;
