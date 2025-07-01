@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -52,6 +52,49 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow connections from any origin for development
 	},
+}
+
+// Global logger
+var logger *slog.Logger
+
+// initLogger initializes the structured logger based on configuration
+func initLogger() {
+	// Get log level from environment variable, default to INFO
+	logLevel := os.Getenv("LOG_LEVEL")
+	var level slog.Level
+	switch strings.ToUpper(logLevel) {
+	case "DEBUG":
+		level = slog.LevelDebug
+	case "INFO":
+		level = slog.LevelInfo
+	case "WARN", "WARNING":
+		level = slog.LevelWarn
+	case "ERROR":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo // Default to INFO
+	}
+
+	// Get log format from environment variable, default to JSON
+	logFormat := os.Getenv("LOG_FORMAT")
+	var handler slog.Handler
+	switch strings.ToUpper(logFormat) {
+	case "TEXT":
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: level,
+		})
+	case "JSON", "":
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: level,
+		})
+	default:
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
+	logger = slog.New(handler)
+	slog.SetDefault(logger)
 }
 
 // generateSummary uses Google GenAI to generate content based on the provided transcript, previous summary, and prompt
@@ -105,30 +148,33 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("WebSocket upgrade failed: %v", err)
+		logger.Error("WebSocket upgrade failed", "error", err)
 		return
 	}
 	defer conn.Close()
 
-	log.Println("WebSocket connection established")
+	logger.Info("WebSocket connection established")
 
 	// Read the initial configuration message from the client
 	_, p, err := conn.ReadMessage()
 	if err != nil {
-		log.Printf("Failed to read config message: %v", err)
+		logger.Error("Failed to read config message", "error", err)
 		return
 	}
 
 	var config ConfigMessage
 	if err := json.Unmarshal(p, &config); err != nil {
-		log.Printf("Failed to unmarshal config message: %v", err)
+		logger.Error("Failed to unmarshal config message", "error", err)
 		return
 	}
 
-	log.Printf("Received config: AudioFormat=%+v, LanguageCode=%s, AlternativeLanguageCodes=%v", config.AudioFormat, config.LanguageCode, config.AlternativeLanguageCodes)
-	
+	logger.Info("Received configuration",
+		"audioFormat", config.AudioFormat,
+		"languageCode", config.LanguageCode,
+		"alternativeLanguageCodes", config.AlternativeLanguageCodes)
+
 	// Debug: Log the exact format string received
-	log.Printf("Exact audio format received: '%s'", config.AudioFormat.Format)
+	logger.Debug("Exact audio format received", "format", config.AudioFormat.Format)
 
 	ctx := context.Background()
 
@@ -136,15 +182,18 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	location := os.Getenv("GCP_LOCATION")
 	if projectID == "" || location == "" {
-		log.Println("GCP_PROJECT_ID or GCP_LOCATION environment variable not set. Summary generation will be disabled.")
+		logger.Warn("GCP environment variables not set, summary generation disabled",
+			"missing", "GCP_PROJECT_ID or GCP_LOCATION")
 	} else {
-		log.Printf("GCP_PROJECT_ID: %s, GCP_LOCATION: %s", projectID, location)
+		logger.Info("GCP configuration loaded",
+			"projectID", projectID,
+			"location", location)
 	}
 
 	// Create Speech-to-Text client
 	client, err := speech.NewClient(ctx)
 	if err != nil {
-		log.Printf("Failed to create Speech-to-Text client: %v", err)
+		logger.Error("Failed to create Speech-to-Text client", "error", err)
 		return
 	}
 	defer client.Close()
@@ -159,37 +208,39 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		alternativeLanguages = []string{"fr-FR", "es-ES"} // Default alternatives if primary is en-US and no alternatives provided
 	}
 
-	log.Printf("Using primary language: %s, alternative languages: %v", primaryLanguage, alternativeLanguages)
+	logger.Info("Language configuration",
+		"primaryLanguage", primaryLanguage,
+		"alternativeLanguages", alternativeLanguages)
 
 	// Map audio format string to Google Speech API encoding
 	var encoding speechpb.RecognitionConfig_AudioEncoding
 	formatLower := strings.ToLower(config.AudioFormat.Format)
-	
-	log.Printf("Mapping audio format '%s' to Speech API encoding", config.AudioFormat.Format)
-	
+
+	logger.Debug("Mapping audio format to Speech API encoding", "format", config.AudioFormat.Format)
+
 	switch formatLower {
 	case "linear16":
 		encoding = speechpb.RecognitionConfig_LINEAR16
-		log.Printf("Using LINEAR16 encoding")
+		logger.Debug("Audio encoding selected", "encoding", "LINEAR16")
 	case "ogg_opus":
 		encoding = speechpb.RecognitionConfig_OGG_OPUS
-		log.Printf("Using OGG_OPUS encoding")
+		logger.Debug("Audio encoding selected", "encoding", "OGG_OPUS")
 	case "webm_opus":
 		encoding = speechpb.RecognitionConfig_WEBM_OPUS
-		log.Printf("Using WEBM_OPUS encoding")
+		logger.Debug("Audio encoding selected", "encoding", "WEBM_OPUS")
 	case "flac":
 		encoding = speechpb.RecognitionConfig_FLAC
-		log.Printf("Using FLAC encoding")
+		logger.Debug("Audio encoding selected", "encoding", "FLAC")
 	case "mulaw":
 		encoding = speechpb.RecognitionConfig_MULAW
-		log.Printf("Using MULAW encoding")
+		logger.Debug("Audio encoding selected", "encoding", "MULAW")
 	default:
 		// Try using the value lookup as fallback
 		if encodingValue, exists := speechpb.RecognitionConfig_AudioEncoding_value[config.AudioFormat.Format]; exists {
 			encoding = speechpb.RecognitionConfig_AudioEncoding(encodingValue)
-			log.Printf("Using encoding from value lookup: %v", encoding)
+			logger.Debug("Audio encoding from value lookup", "encoding", encoding)
 		} else {
-			log.Printf("Unknown audio format '%s', defaulting to LINEAR16", config.AudioFormat.Format)
+			logger.Warn("Unknown audio format, defaulting to LINEAR16", "format", config.AudioFormat.Format)
 			encoding = speechpb.RecognitionConfig_LINEAR16
 		}
 	}
@@ -208,23 +259,26 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	
-	log.Printf("Final Speech API config: Encoding=%v, SampleRate=%d, Language=%s", encoding, config.AudioFormat.SampleRate, primaryLanguage)
+
+	logger.Info("Speech API configuration finalized",
+		"encoding", encoding,
+		"sampleRate", config.AudioFormat.SampleRate,
+		"language", primaryLanguage)
 
 	// Create a bidirectional streaming RPC
 	stream, err := client.StreamingRecognize(ctx)
 	if err != nil {
-		log.Printf("Failed to create streaming client: %v", err)
+		logger.Error("Failed to create streaming client", "error", err)
 		return
 	}
 
 	// Send the initial configuration message
 	if err := stream.Send(&req); err != nil {
-		log.Printf("Failed to send initial config to Speech-to-Text: %v", err)
+		logger.Error("Failed to send initial config to Speech-to-Text", "error", err)
 		return
 	}
 
-	log.Println("Connected to Google Cloud Speech-to-Text streaming session")
+	logger.Info("Connected to Google Cloud Speech-to-Text streaming session")
 
 	var fullTranscription strings.Builder
 	var currentSummary string
@@ -238,7 +292,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 3. **Completion**: Simply complete or extend the summary with new information from the transcript
 4. **Accuracy**: Do not invent or add information that is not present in the transcript
 5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
-6. **Format**: Use markdown formatting for better readability
+6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
 
 If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
 
@@ -254,22 +308,25 @@ If this is an update to an existing summary, maintain the structure and content 
 			resp, err := stream.Recv()
 			if err == io.EOF {
 				// Stream closed
+				logger.Debug("Speech-to-Text stream closed")
 				return
 			}
 			if err != nil {
-				log.Printf("Error receiving from Speech-to-Text: %v", err)
+				logger.Error("Error receiving from Speech-to-Text", "error", err)
 				return
 			}
 
 			if err := resp.Error; err != nil {
-				log.Printf("Speech-to-Text error: %v", err)
+				logger.Error("Speech-to-Text API error", "error", err)
 				continue
 			}
 
 			for _, result := range resp.Results {
 				if len(result.Alternatives) > 0 {
 					transcriptionText := result.Alternatives[0].Transcript
-					log.Printf("Transcription: %s (is_final: %t)", transcriptionText, result.IsFinal)
+					logger.Debug("Transcription received",
+						"text", transcriptionText,
+						"isFinal", result.IsFinal)
 
 					response := TranscriptionResponse{
 						Type:      "transcription",
@@ -280,13 +337,13 @@ If this is an update to an existing summary, maintain the structure and content 
 
 					responseData, err := json.Marshal(response)
 					if err != nil {
-						log.Printf("Failed to marshal transcription response: %v", err)
+						logger.Error("Failed to marshal transcription response", "error", err)
 						continue
 					}
 
 					mu.Lock()
 					if err := conn.WriteMessage(websocket.TextMessage, responseData); err != nil {
-						log.Printf("Failed to send transcription to client: %v", err)
+						logger.Error("Failed to send transcription to client", "error", err)
 						mu.Unlock()
 						return
 					}
@@ -298,16 +355,18 @@ If this is an update to an existing summary, maintain the structure and content 
 						if projectID != "" && location != "" {
 							go func() {
 								fullTranscript := strings.TrimSpace(fullTranscription.String())
-								
+
 								// Safely read current summary
 								summaryMu.Lock()
 								previousSummary := currentSummary
 								summaryMu.Unlock()
-								
-								log.Printf("Attempting to generate summary for transcript length: %d, previous summary length: %d", len(fullTranscript), len(previousSummary))
+
+								logger.Debug("Generating summary",
+									"transcriptLength", len(fullTranscript),
+									"previousSummaryLength", len(previousSummary))
 								summary, err := generateSummary(ctx, projectID, location, fullTranscript, previousSummary, summaryPrompt)
 								if err != nil {
-									log.Printf("Error generating summary: %v", err)
+									logger.Error("Error generating summary", "error", err)
 									return
 								}
 								if summary != "" {
@@ -315,8 +374,8 @@ If this is an update to an existing summary, maintain the structure and content 
 									summaryMu.Lock()
 									currentSummary = summary
 									summaryMu.Unlock()
-									
-									log.Printf("Generated updated summary: %s", summary)
+
+									logger.Info("Summary generated", "summaryLength", len(summary))
 									summaryResponse := SummaryResponse{
 										Type:      "summary",
 										Text:      summary,
@@ -324,12 +383,12 @@ If this is an update to an existing summary, maintain the structure and content 
 									}
 									summaryData, err := json.Marshal(summaryResponse)
 									if err != nil {
-										log.Printf("Failed to marshal summary response: %v", err)
+										logger.Error("Failed to marshal summary response", "error", err)
 										return
 									}
 									mu.Lock()
 									if err := conn.WriteMessage(websocket.TextMessage, summaryData); err != nil {
-										log.Printf("Failed to send summary to client: %v", err)
+										logger.Error("Failed to send summary to client", "error", err)
 									}
 									mu.Unlock()
 								}
@@ -347,7 +406,7 @@ If this is an update to an existing summary, maintain the structure and content 
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket error: %v", err)
+				logger.Error("Unexpected WebSocket error", "error", err)
 			}
 			break
 		}
@@ -355,31 +414,36 @@ If this is an update to an existing summary, maintain the structure and content 
 		switch messageType {
 		case websocket.BinaryMessage:
 			audioChunkCount++
-			log.Printf("Received audio chunk #%d: %d bytes", audioChunkCount, len(message))
-			
+			logger.Debug("Received audio chunk",
+				"chunkNumber", audioChunkCount,
+				"bytes", len(message))
+
 			// Send audio content to Speech-to-Text
 			if err := stream.Send(&speechpb.StreamingRecognizeRequest{
 				StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
 					AudioContent: message,
 				},
 			}); err != nil {
-				log.Printf("Failed to send audio chunk #%d to Speech-to-Text: %v", audioChunkCount, err)
+				logger.Error("Failed to send audio chunk to Speech-to-Text",
+					"chunkNumber", audioChunkCount,
+					"error", err)
 				return
 			}
-			log.Printf("Successfully sent audio chunk #%d to Speech-to-Text", audioChunkCount)
+			logger.Debug("Successfully sent audio chunk to Speech-to-Text",
+				"chunkNumber", audioChunkCount)
 		case websocket.TextMessage:
-			log.Printf("Received text message: %s", string(message))
+			logger.Debug("Received text message", "message", string(message))
 			// Check if it's a new config message (for system audio mode)
 			var newConfig ConfigMessage
 			if err := json.Unmarshal(message, &newConfig); err == nil && newConfig.Type == "config" {
-				log.Printf("Received new config message: %+v", newConfig)
+				logger.Info("Received new config message", "config", newConfig)
 			}
 		}
 	}
 
 	// Close the Speech-to-Text stream when the WebSocket connection closes
 	stream.CloseSend()
-	log.Println("WebSocket connection closed")
+	logger.Info("WebSocket connection closed")
 }
 
 // serveStaticFiles serves static HTML and JS files
@@ -396,17 +460,21 @@ func serveStaticFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Initialize logging
+	initLogger()
+
 	// Set up routes
 	http.HandleFunc("/ws", handleWebSocket)
 	http.HandleFunc("/", serveStaticFiles)
 
 	// Start server
 	port := ":8080"
-	log.Printf("Starting server on http://localhost%s", port)
-	log.Printf("WebSocket endpoint: ws://localhost%s/ws", port)
+	logger.Info("Starting server",
+		"address", fmt.Sprintf("http://localhost%s", port),
+		"websocket", fmt.Sprintf("ws://localhost%s/ws", port))
 
 	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		logger.Error("Server failed to start", "error", err)
+		os.Exit(1)
 	}
 }
-

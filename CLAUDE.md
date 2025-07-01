@@ -34,6 +34,10 @@ This is a real-time audio transcription application that uses Google Cloud Speec
 GCP_PROJECT_ID=your-gcp-project-id
 GCP_LOCATION=your-gcp-location  # e.g., us-central1
 SUMMARY_PROMPT="Your custom summarization prompt"  # Optional
+
+# Logging Configuration
+LOG_LEVEL=INFO    # DEBUG, INFO, WARN, ERROR (default: INFO)
+LOG_FORMAT=JSON   # JSON, TEXT (default: JSON)
 ```
 
 ### Installation & Running
@@ -71,6 +75,9 @@ The server will start on `http://localhost:8080`
 - **Audio Format**: LINEAR16, 16kHz sample rate, mono
 - **Language Detection**: Supports multiple BCP-47 language codes
 - **Summarization**: Configurable prompt via `SUMMARY_PROMPT` environment variable
+- **Logging**: Structured logging with configurable levels and formats
+  - **Levels**: DEBUG (verbose), INFO (default), WARN, ERROR
+  - **Formats**: JSON (structured, default), TEXT (human-readable)
 
 ## Development Commands
 

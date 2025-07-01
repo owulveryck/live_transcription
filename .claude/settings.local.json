@@ -8,7 +8,8 @@
       "Bash(pkill:*)",
       "Bash(gofmt:*)",
       "Bash(go test:*)",
-      "WebFetch(domain:pkg.go.dev)"
+      "WebFetch(domain:pkg.go.dev)",
+      "Bash(go run:*)"
     ],
     "deny": []
   }
