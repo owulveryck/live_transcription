@@ -13,8 +13,8 @@ import (
 	"time"
 
 	speech "cloud.google.com/go/speech/apiv1"
-	"cloud.google.com/go/vertexai/genai"
 	"github.com/gorilla/websocket"
+	"google.golang.org/genai"
 	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1"
 )
 
@@ -54,30 +54,39 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// generateWithText uses Vertex AI to generate content based on the provided text and prompt
+// generateWithText uses Google GenAI to generate content based on the provided text and prompt
 func generateWithText(ctx context.Context, projectID, location, text, prompt string) (string, error) {
 	if text == "" {
 		return "", nil
 	}
 
-	client, err := genai.NewClient(ctx, projectID, location)
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		Project:  projectID,
+		Location: location,
+		Backend:  genai.BackendVertexAI,
+	})
 	if err != nil {
-		return "", fmt.Errorf("error creating Vertex AI client: %v", err)
+		return "", fmt.Errorf("error creating GenAI client: %v", err)
 	}
-	defer client.Close()
-
-	model := client.GenerativeModel("gemini-2.5-flash")
 
 	fullPrompt := fmt.Sprintf("%s\n\n%s", prompt, text)
 
-	resp, err := model.GenerateContent(ctx, genai.Text(fullPrompt))
+	parts := []*genai.Part{
+		{Text: fullPrompt},
+	}
+
+	content := []*genai.Content{
+		{Role: "user", Parts: parts},
+	}
+
+	resp, err := client.Models.GenerateContent(ctx, "gemini-2.5-flash", content, nil)
 	if err != nil {
 		return "", fmt.Errorf("error generating content: %v", err)
 	}
 
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		if generatedText, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
-			return string(generatedText), nil
+	if resp != nil && len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+		if resp.Candidates[0].Content.Parts[0].Text != "" {
+			return resp.Candidates[0].Content.Parts[0].Text, nil
 		}
 	}
 
