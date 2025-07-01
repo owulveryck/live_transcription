@@ -467,6 +467,11 @@
                 
                 <textarea id="finalTranscriptOutput" class="transcript-textarea" readonly placeholder="Final transcription will be appended here..."></textarea>
             </div>
+
+            <div class="transcription-output-section">
+                <h2>Summary</h2>
+                <textarea id="summaryOutput" class="transcript-textarea" readonly placeholder="Summary will appear here..."></textarea>
+            </div>
         </div>
     </div>
 
@@ -495,6 +500,12 @@
         document.addEventListener('transcription', function(event) {
             const data = event.detail;
             updateTranscriptionOutput(data);
+        });
+
+        // Listen for summary events
+        document.addEventListener('summary', function(event) {
+            const data = event.detail;
+            updateSummaryOutput(data);
         });
 
         
@@ -584,6 +595,13 @@
             finalOutput.scrollTop = finalOutput.scrollHeight;
         }
 
+        function updateSummaryOutput(data) {
+            const summaryOutput = document.getElementById('summaryOutput');
+            if (data.type === 'summary') {
+                summaryOutput.value = data.text;
+            }
+        }
+
         function updateStats() {
             document.getElementById('transcriptCount').textContent = transcriptionStats.count;
             document.getElementById('wordsCount').textContent = transcriptionStats.words;
@@ -599,6 +617,7 @@
         function clearTranscripts() {
             document.getElementById('interimTranscriptOutput').value = '';
             document.getElementById('finalTranscriptOutput').value = '';
+            document.getElementById('summaryOutput').value = '';
             
             // Reset stats
             transcriptionStats.count = 0;
