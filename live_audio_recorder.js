@@ -240,7 +240,7 @@ class LiveAudioRecorder {
             console.log("Received from Google Cloud Speech-to-Text:", data);
 
             if (data.type === "summary") {
-                const summaryEvent = new CustomEvent('summaryupdate', {
+                const summaryEvent = new CustomEvent('summary', {
                     detail: data
                 });
                 document.dispatchEvent(summaryEvent);
