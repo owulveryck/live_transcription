@@ -175,6 +175,15 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	var fullTranscription strings.Builder
 
+	// Default prompt for summarization
+	defaultSummaryPrompt := "Provide a complete summary of the following text, highlighting the key elements:"
+
+	// Get summarization prompt from environment variable, or use default
+	summaryPrompt := os.Getenv("SUMMARY_PROMPT")
+	if summaryPrompt == "" {
+		summaryPrompt = defaultSummaryPrompt
+	}
+
 	// Goroutine to receive messages from Speech-to-Text and send to client
 	go func() {
 		for {
@@ -223,7 +232,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 						fullTranscription.WriteString(transcriptionText + " ")
 						if projectID != "" && location != "" {
 							log.Printf("Attempting to generate summary for text length: %d, content: %s", fullTranscription.Len(), fullTranscription.String())
-							summaryPrompt := "Summarize the following text:"
 							summary, err := generateWithText(ctx, projectID, location, fullTranscription.String(), summaryPrompt)
 							if err != nil {
 								log.Printf("Error generating summary: %v", err)
