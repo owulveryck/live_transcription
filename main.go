@@ -8,17 +8,15 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	speech "cloud.google.com/go/speech/apiv1"
+	"cloud.google.com/go/vertexai/genai"
 	"github.com/gorilla/websocket"
 	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1"
-	"cloud.google.com/go/vertexai/genai"
 )
-
 
 type AudioFormat struct {
 	Format     string `json:"format"`
@@ -28,10 +26,10 @@ type AudioFormat struct {
 
 // ConfigMessage represents the initial configuration sent from the client
 type ConfigMessage struct {
-	Type          string `json:"type"`
-	AudioFormat   AudioFormat `json:"audioFormat"`
-	LanguageCode  string   `json:"languageCode"`
-	AlternativeLanguageCodes []string `json:"alternativeLanguageCodes"`
+	Type                     string      `json:"type"`
+	AudioFormat              AudioFormat `json:"audioFormat"`
+	LanguageCode             string      `json:"languageCode"`
+	AlternativeLanguageCodes []string    `json:"alternativeLanguageCodes"`
 }
 
 // TranscriptionResponse represents the transcription response sent back to the client
@@ -56,8 +54,8 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// generateSummary uses Vertex AI to generate a summary of the provided text
-func generateSummary(ctx context.Context, projectID, location, text string) (string, error) {
+// generateWithText uses Vertex AI to generate content based on the provided text and prompt
+func generateWithText(ctx context.Context, projectID, location, text, prompt string) (string, error) {
 	if text == "" {
 		return "", nil
 	}
@@ -68,24 +66,23 @@ func generateSummary(ctx context.Context, projectID, location, text string) (str
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-pro")
+	model := client.GenerativeModel("gemini-2.5-flash")
 
-	prompt := fmt.Sprintf("Summarize the following text:\n\n%s", text)
+	fullPrompt := fmt.Sprintf("%s\n\n%s", prompt, text)
 
-	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	resp, err := model.GenerateContent(ctx, genai.Text(fullPrompt))
 	if err != nil {
 		return "", fmt.Errorf("error generating content: %v", err)
 	}
 
 	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		if summary, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
-			return string(summary), nil
+		if generatedText, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
+			return string(generatedText), nil
 		}
 	}
 
-	return "", fmt.Errorf("no summary generated")
+	return "", fmt.Errorf("no content generated")
 }
-
 
 // handleWebSocket handles WebSocket connections for live audio transcription using Google Cloud Speech-to-Text
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -122,17 +119,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	location := os.Getenv("GCP_LOCATION")
 	if projectID == "" || location == "" {
 		log.Println("GCP_PROJECT_ID or GCP_LOCATION environment variable not set. Summary generation will be disabled.")
-	}
-
-	// Get summary interval from environment variable, default to 20 seconds
-	summaryIntervalStr := os.Getenv("SUMMARY_INTERVAL_SECONDS")
-	summaryInterval := 20 * time.Second // Default value
-	if summaryIntervalStr != "" {
-		if interval, err := strconv.Atoi(summaryIntervalStr); err == nil {
-			summaryInterval = time.Duration(interval) * time.Second
-		} else {
-			log.Printf("Invalid SUMMARY_INTERVAL_SECONDS: %v. Using default of 20 seconds.", err)
-		}
+	} else {
+		log.Printf("GCP_PROJECT_ID: %s, GCP_LOCATION: %s", projectID, location)
 	}
 
 	// Create Speech-to-Text client
@@ -160,9 +148,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
-					Encoding:        speechpb.RecognitionConfig_AudioEncoding(speechpb.RecognitionConfig_AudioEncoding_value[config.AudioFormat.Format]),
-					SampleRateHertz: int32(config.AudioFormat.SampleRate),
-					LanguageCode:    primaryLanguage,
+					Encoding:                 speechpb.RecognitionConfig_AudioEncoding(speechpb.RecognitionConfig_AudioEncoding_value[config.AudioFormat.Format]),
+					SampleRateHertz:          int32(config.AudioFormat.SampleRate),
+					LanguageCode:             primaryLanguage,
 					AlternativeLanguageCodes: alternativeLanguages,
 				},
 				InterimResults: true,
@@ -233,49 +221,40 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 					if result.IsFinal {
 						fullTranscription.WriteString(transcriptionText + " ")
+						if projectID != "" && location != "" {
+							log.Printf("Attempting to generate summary for text length: %d, content: %s", fullTranscription.Len(), fullTranscription.String())
+							summaryPrompt := "Summarize the following text:"
+							summary, err := generateWithText(ctx, projectID, location, fullTranscription.String(), summaryPrompt)
+							if err != nil {
+								log.Printf("Error generating summary: %v", err)
+							} else {
+								log.Printf("Generated summary: %s", summary)
+							}
+							if err != nil {
+								log.Printf("Error generating summary: %v", err)
+							} else if summary != "" {
+								summaryResponse := SummaryResponse{
+									Type:      "summary",
+									Text:      summary,
+									Timestamp: time.Now(),
+								}
+								summaryData, err := json.Marshal(summaryResponse)
+								if err != nil {
+									log.Printf("Failed to marshal summary response: %v", err)
+								} else {
+									mu.Lock()
+									if err := conn.WriteMessage(websocket.TextMessage, summaryData); err != nil {
+										log.Printf("Failed to send summary to client: %v", err)
+									}
+									mu.Unlock()
+								}
+							}
+						}
 					}
 				}
 			}
 		}
 	}()
-
-	// Goroutine for periodic summarization
-	if projectID != "" && location != "" && summaryInterval > 0 {
-		go func() {
-			ticker := time.NewTicker(summaryInterval)
-			defer ticker.Stop()
-
-			for range ticker.C {
-				currentTranscription := fullTranscription.String()
-				if currentTranscription != "" {
-					summary, err := generateSummary(ctx, projectID, location, currentTranscription)
-					if err != nil {
-						log.Printf("Error generating summary: %v", err)
-						continue
-					}
-
-					summaryResponse := SummaryResponse{
-						Type:      "summary",
-						Text:      summary,
-						Timestamp: time.Now(),
-					}
-					summaryData, err := json.Marshal(summaryResponse)
-					if err != nil {
-						log.Printf("Failed to marshal summary response: %v", err)
-						continue
-					}
-
-					mu.Lock()
-					if err := conn.WriteMessage(websocket.TextMessage, summaryData); err != nil {
-						log.Printf("Failed to send summary to client: %v", err)
-						mu.Unlock()
-						return
-					}
-					mu.Unlock()
-				}
-			}
-		}()
-	}
 
 	// Main loop to read from client and send audio to Speech-to-Text
 	for {
@@ -335,3 +314,4 @@ func main() {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
+
