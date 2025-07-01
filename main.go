@@ -54,9 +54,9 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// generateWithText uses Google GenAI to generate content based on the provided text and prompt
-func generateWithText(ctx context.Context, projectID, location, text, prompt string) (string, error) {
-	if text == "" {
+// generateSummary uses Google GenAI to generate content based on the provided transcript, previous summary, and prompt
+func generateSummary(ctx context.Context, projectID, location, fullTranscript, previousSummary, prompt string) (string, error) {
+	if fullTranscript == "" {
 		return "", nil
 	}
 
@@ -69,7 +69,13 @@ func generateWithText(ctx context.Context, projectID, location, text, prompt str
 		return "", fmt.Errorf("error creating GenAI client: %v", err)
 	}
 
-	fullPrompt := fmt.Sprintf("%s\n\n%s", prompt, text)
+	// Build the full prompt with transcript and previous summary
+	var fullPrompt string
+	if previousSummary != "" {
+		fullPrompt = fmt.Sprintf("%s\n\n--- PREVIOUS SUMMARY ---\n%s\n\n--- FULL TRANSCRIPT ---\n%s", prompt, previousSummary, fullTranscript)
+	} else {
+		fullPrompt = fmt.Sprintf("%s\n\n--- FULL TRANSCRIPT ---\n%s", prompt, fullTranscript)
+	}
 
 	parts := []*genai.Part{
 		{Text: fullPrompt},
@@ -183,9 +189,19 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("Connected to Google Cloud Speech-to-Text streaming session")
 
 	var fullTranscription strings.Builder
+	var currentSummary string
 
 	// Default prompt for summarization
-	defaultSummaryPrompt := "Provide a complete summary of the following text, highlighting the key elements:"
+	defaultSummaryPrompt := `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
+
+1. **Language**: Write the summary in the same language as the majority of the transcript
+2. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
+3. **Completion**: Simply complete or extend the summary with new information from the transcript
+4. **Accuracy**: Do not invent or add information that is not present in the transcript
+5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
+6. **Format**: Use markdown formatting for better readability
+
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
 
 	// Get summarization prompt from environment variable, or use default
 	summaryPrompt := os.Getenv("SUMMARY_PROMPT")
@@ -240,16 +256,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					if result.IsFinal {
 						fullTranscription.WriteString(transcriptionText + " ")
 						if projectID != "" && location != "" {
-							log.Printf("Attempting to generate summary for text length: %d, content: %s", fullTranscription.Len(), fullTranscription.String())
-							summary, err := generateWithText(ctx, projectID, location, fullTranscription.String(), summaryPrompt)
-							if err != nil {
-								log.Printf("Error generating summary: %v", err)
-							} else {
-								log.Printf("Generated summary: %s", summary)
-							}
+							fullTranscript := strings.TrimSpace(fullTranscription.String())
+							log.Printf("Attempting to generate summary for transcript length: %d, previous summary length: %d", len(fullTranscript), len(currentSummary))
+							summary, err := generateSummary(ctx, projectID, location, fullTranscript, currentSummary, summaryPrompt)
 							if err != nil {
 								log.Printf("Error generating summary: %v", err)
 							} else if summary != "" {
+								currentSummary = summary // Update current summary
+								log.Printf("Generated updated summary: %s", summary)
 								summaryResponse := SummaryResponse{
 									Type:      "summary",
 									Text:      summary,

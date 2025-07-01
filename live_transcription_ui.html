@@ -214,6 +214,72 @@
             justify-content: center;
         }
 
+        .summary-output.empty::before {
+            content: attr(data-placeholder);
+        }
+
+        /* Markdown content styling within summary */
+        .summary-output h1, .summary-output h2, .summary-output h3, 
+        .summary-output h4, .summary-output h5, .summary-output h6 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .summary-output h1 { font-size: 1.5rem; }
+        .summary-output h2 { font-size: 1.3rem; }
+        .summary-output h3 { font-size: 1.1rem; }
+
+        .summary-output p {
+            margin-bottom: 1rem;
+        }
+
+        .summary-output ul, .summary-output ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .summary-output li {
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-output strong {
+            font-weight: 600;
+        }
+
+        .summary-output em {
+            font-style: italic;
+        }
+
+        .summary-output code {
+            background-color: #e9ecef;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875em;
+        }
+
+        .summary-output pre {
+            background-color: #f1f3f4;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        .summary-output pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        .summary-output blockquote {
+            border-left: 4px solid #007bff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #6c757d;
+            font-style: italic;
+        }
+
         /* Flexbox for main content area */
         .main-content-area {
             display: flex;
@@ -486,9 +552,11 @@
                         Copy Summary
                     </button>
                 </div>
-                <div id="summaryOutput" class="transcript-textarea" style="height: 200px; overflow-y: auto;" placeholder="Summary will appear here..."></div>
+                <div id="summaryOutput" class="summary-output empty" style="height: 200px; overflow-y: auto; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #f8f9fa;" data-placeholder="Summary will appear here..."></div>
             </div>
         </div>
+        <!-- Marked.js for markdown rendering -->
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <script src="live_audio_recorder.js"></script>
         <script>
             const recorder = new LiveAudioRecorder();
@@ -519,6 +587,7 @@
                 let finalTranscriptEntries = 0;
                 let sessionInterval = null;
                 let sessionSeconds = 0;
+                let rawSummaryMarkdown = ''; // Store raw markdown content for copying
 
                 function updateConnectionStatus(status) {
                     connectionStatus.className = `status-indicator ${status}`;
@@ -596,7 +665,9 @@
                 clearBtn.addEventListener('click', () => {
                     interimTranscriptOutput.value = '';
                     finalTranscriptOutput.value = '';
-                    summaryOutput.textContent = '';
+                    summaryOutput.innerHTML = '';
+                    summaryOutput.classList.add('empty');
+                    rawSummaryMarkdown = ''; // Clear raw markdown content
                     copyFinalTranscriptBtn.disabled = true;
                     copySummaryBtn.disabled = true;
                     resetStats();
@@ -630,9 +701,22 @@
                     const data = event.detail;
                     if (data.text) {
                         console.log(`📋 Processing summary: "${data.text.substring(0, 100)}..."`);
-                        summaryOutput.textContent = data.text;
+                        // Store raw markdown for copying
+                        rawSummaryMarkdown = data.text;
+                        // Render markdown content
+                        try {
+                            const renderedMarkdown = marked.parse(data.text);
+                            summaryOutput.innerHTML = renderedMarkdown;
+                            summaryOutput.classList.remove('empty');
+                            console.log('✅ Summary markdown rendered and added to UI');
+                        } catch (error) {
+                            console.error('❌ Error rendering markdown:', error);
+                            // Fallback to plain text
+                            summaryOutput.textContent = data.text;
+                            summaryOutput.classList.remove('empty');
+                            console.log('⚠️ Fallback: Summary added as plain text');
+                        }
                         copySummaryBtn.disabled = false;
-                        console.log('✅ Summary added to UI');
                     } else {
                         console.warn('⚠️ Summary event received but no text field found:', data);
                     }
@@ -669,12 +753,19 @@
                 };
 
                 window.copySummaryToClipboard = () => {
-                    summaryOutput.select();
-                    navigator.clipboard.writeText(summaryOutput.textContent).then(() => {
-                        alert('Summary copied to clipboard!');
-                    }).catch(err => {
-                        console.error('Failed to copy summary:', err);
-                    });
+                    // Copy the raw markdown content instead of rendered text
+                    if (rawSummaryMarkdown) {
+                        navigator.clipboard.writeText(rawSummaryMarkdown).then(() => {
+                            console.log('📋 Raw markdown summary copied to clipboard');
+                            alert('Summary (markdown) copied to clipboard!');
+                        }).catch(err => {
+                            console.error('Failed to copy summary markdown:', err);
+                            alert('Failed to copy summary to clipboard');
+                        });
+                    } else {
+                        console.warn('⚠️ No raw markdown content available to copy');
+                        alert('No summary available to copy');
+                    }
                 };
             });
         </script>
