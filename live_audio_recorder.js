@@ -211,7 +211,7 @@
             this.initVisualizer();
 
             try {
-                this.audioContext = new AudioContext({ sampleRate: 16000 }); // Google Speech-to-Text prefers 16kHz
+                this.audioContext = new AudioContext(); // Use browser default sample rate for compatibility
                 const audioStream = await this._setupAudioStreams();
 
                 this._setupAudioContextAndVisualizer(audioStream);
@@ -442,182 +442,30 @@
                 return;
             }
             
-            // Determine the actual format based on what MediaRecorder will use
-            let actualFormat = "WEBM_OPUS"; // Default fallback
-            let actualSampleRate = 48000;
+            // Use the same format as microphone recording for consistency
+            let actualFormat = "LINEAR16";
+            let actualSampleRate = this.audioContext.sampleRate;
             
-            // Check what format will actually be used
-            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                actualFormat = "WEBM_OPUS";
-            } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-                actualFormat = "OGG_OPUS";
-            } else {
-                // If neither Opus format is supported, we'll need to handle it differently
-                console.warn("Neither WebM nor OGG Opus is supported, using LINEAR16 fallback");
-                actualFormat = "LINEAR16";
-                actualSampleRate = 16000;
-            }
-            
-            // Send config message for the backend
-            const configMessage = {
-                type: "config",
-                audioFormat: {
-                    format: actualFormat,
-                    sampleRate: actualSampleRate,
-                    channels: 1
-                },
-                languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
-                alternativeLanguageCodes: languageCodes.slice(1)
-            };
-            console.log("📤 Sending config message for MediaRecorder:", configMessage);
-            this.socket.send(JSON.stringify(configMessage));
-            
-            // Set up MediaRecorder with the format that matches our config
-            let options = {};
-            let selectedMimeType = '';
-            
-            if (actualFormat === "WEBM_OPUS" && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                options.mimeType = 'audio/webm;codecs=opus';
-                selectedMimeType = 'audio/webm;codecs=opus';
-            } else if (actualFormat === "OGG_OPUS" && MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-                options.mimeType = 'audio/ogg;codecs=opus';
-                selectedMimeType = 'audio/ogg;codecs=opus';
-            } else {
-                // Fallback to best available format
-                const mimeTypes = [
-                    'audio/webm;codecs=opus',
-                    'audio/ogg;codecs=opus', 
-                    'audio/webm',
-                    'audio/mp4',
-                    'audio/mpeg',
-                    '' // Default (browser chooses)
-                ];
-                
-                for (const mimeType of mimeTypes) {
-                    if (mimeType === '' || MediaRecorder.isTypeSupported(mimeType)) {
-                        if (mimeType !== '') {
-                            options.mimeType = mimeType;
-                        }
-                        selectedMimeType = mimeType || 'default';
-                        console.log(`Fallback to MIME type: ${selectedMimeType}`);
-                        break;
-                    }
-                }
-            }
-            
-            console.log(`MediaRecorder will use MIME type: ${selectedMimeType}`);
-            console.log(`Config format: ${actualFormat}, MediaRecorder format: ${selectedMimeType}`);
-            
-            // Try to create MediaRecorder with different configurations
-            try {
-                this.mediaRecorder = new MediaRecorder(streamToRecord, options);
-            } catch (error) {
-                console.error("Failed to create MediaRecorder with options:", options, error);
-                
-                // Try without any options (let browser choose)
-                try {
-                    console.log("Trying MediaRecorder without options");
-                    this.mediaRecorder = new MediaRecorder(streamToRecord);
-                } catch (fallbackError) {
-                    console.error("Failed to create MediaRecorder even without options:", fallbackError);
-                    return;
-                }
-            }
-            
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0 && this.socket && this.socket.readyState === WebSocket.OPEN) {
-                    console.log(`🎵 Sending MediaRecorder data: ${event.data.size} bytes`);
-                    this.socket.send(event.data);
-                }
-            };
-            
-            this.mediaRecorder.onerror = (event) => {
-                console.error("MediaRecorder error:", event.error);
-            };
-            
-            // Start recording with small chunks for real-time processing
-            try {
-                this.mediaRecorder.start(250); // 250ms chunks
-                console.log("MediaRecorder started for system audio");
-            } catch (error) {
-                console.error("Failed to start MediaRecorder:", error);
-                console.error("Stream state:", streamToRecord.active ? "active" : "inactive");
-                console.error("Audio tracks state:", audioTracks.map(track => ({
-                    id: track.id,
-                    kind: track.kind,
-                    readyState: track.readyState,
-                    enabled: track.enabled,
-                    muted: track.muted
-                })));
-                
-                // Try creating a compatible stream through AudioContext
-                console.log("Attempting AudioContext workaround for system audio");
-                try {
-                    this._setupSystemAudioWithAudioContext(streamToRecord, languageCodes);
-                    return;
-                } catch (contextError) {
-                    console.error("AudioContext workaround also failed:", contextError);
-                    throw error;
-                }
-            }
+            // Use AudioContext approach for consistent processing
+            console.log("Setting up system audio processing with AudioContext");
+            this._setupSystemAudioWithAudioContext(streamToRecord, languageCodes);
         }
 
         _setupSystemAudioWithAudioContext(systemStream, languageCodes) {
             console.log("Setting up system audio processing with AudioContext");
             
-            // Create AudioContext if not exists
-            if (!this.audioContext) {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            
             // Create audio source from system stream
             const source = this.audioContext.createMediaStreamSource(systemStream);
             
-            // Create destination for a new stream
-            const destination = this.audioContext.createMediaStreamDestination();
+            // Create script processor for real-time audio processing (same as microphone)
+            this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
+            this.processor.onaudioprocess = this._onAudioProcess.bind(this);
             
-            // Connect source to destination
-            source.connect(destination);
+            // Connect the processing chain
+            source.connect(this.processor);
+            this.processor.connect(this.audioContext.destination);
             
-            // Use the new stream for MediaRecorder
-            const compatibleStream = destination.stream;
-            
-            // Update config for AudioContext approach
-            const configMessage = {
-                type: "config",
-                audioFormat: {
-                    format: "LINEAR16", // Use PCM format for AudioContext approach
-                    sampleRate: this.audioContext.sampleRate,
-                    channels: 1
-                },
-                languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
-                alternativeLanguageCodes: languageCodes.slice(1)
-            };
-            console.log("📤 Sending config message for AudioContext approach:", configMessage);
-            this.socket.send(JSON.stringify(configMessage));
-            
-            // Set up MediaRecorder with the compatible stream
-            try {
-                this.mediaRecorder = new MediaRecorder(compatibleStream);
-                
-                this.mediaRecorder.ondataavailable = (event) => {
-                    if (event.data && event.data.size > 0 && this.socket && this.socket.readyState === WebSocket.OPEN) {
-                        console.log(`🎵 Sending system audio data via AudioContext: ${event.data.size} bytes`);
-                        this.socket.send(event.data);
-                    }
-                };
-                
-                this.mediaRecorder.onerror = (event) => {
-                    console.error("MediaRecorder error (AudioContext approach):", event.error);
-                };
-                
-                this.mediaRecorder.start(250);
-                console.log("MediaRecorder started with AudioContext workaround");
-                
-            } catch (error) {
-                console.error("Failed to start MediaRecorder with AudioContext approach:", error);
-                throw error;
-            }
+            console.log("System audio processing setup complete - using PCM data streaming");
         }
 
         // Start audio processing for Google Cloud Speech-to-Text live streaming
@@ -657,24 +505,26 @@
             
             const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
             
+            // Send config message for all modes
+            const configMessage = {
+                type: "config",
+                audioFormat: {
+                    format: "LINEAR16",
+                    sampleRate: this.audioContext.sampleRate,
+                    channels: 1
+                },
+                languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
+                alternativeLanguageCodes: languageCodes.slice(1)
+            };
+            console.log("📤 Sending config message:", configMessage);
+            this.socket.send(JSON.stringify(configMessage));
+            this.configSent = true;
+            
             // For system audio or mixed mode, use MediaRecorder approach
             if (recordingMode === 'system' || recordingMode === 'both') {
                 this._setupMediaRecorder(languageCodes);
             } else {
                 // For microphone only, use the original PCM approach
-                const configMessage = {
-                    type: "config",
-                    audioFormat: {
-                        format: "LINEAR16",
-                        sampleRate: this.audioContext.sampleRate,
-                        channels: 1
-                    },
-                    languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
-                    alternativeLanguageCodes: languageCodes.slice(1)
-                };
-                console.log("📤 Sending config message:", configMessage);
-                this.socket.send(JSON.stringify(configMessage));
-                this.configSent = true;
                 this.startAudioProcessing(this.micStream);
             }
         }
@@ -697,6 +547,12 @@
                         detail: data
                     });
                     document.dispatchEvent(transcriptionEvent);
+                } else if (data.type === "status") {
+                    console.log("📊 Received status update:", data.status, data.message);
+                    const statusEvent = new CustomEvent('recorderstatus', {
+                        detail: data
+                    });
+                    document.dispatchEvent(statusEvent);
                 } else {
                     console.warn("⚠️ Unknown message type:", data.type, data);
                 }
