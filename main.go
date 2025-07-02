@@ -47,6 +47,14 @@ type SummaryResponse struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// StatusResponse represents status updates sent to the client
+type StatusResponse struct {
+	Type      string    `json:"type"`
+	Status    string    `json:"status"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 // WebSocket upgrader
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -245,8 +253,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Configure the streaming recognition request
-	req := speechpb.StreamingRecognizeRequest{
+	// Configure the streaming recognition request template
+	reqTemplate := speechpb.StreamingRecognizeRequest{
 		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
@@ -265,20 +273,79 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		"sampleRate", config.AudioFormat.SampleRate,
 		"language", primaryLanguage)
 
-	// Create a bidirectional streaming RPC
-	stream, err := client.StreamingRecognize(ctx)
-	if err != nil {
-		logger.Error("Failed to create streaming client", "error", err)
+	// Stream management variables
+	var stream speechpb.Speech_StreamingRecognizeClient
+	var streamMu sync.Mutex
+	streamStartTime := time.Now()
+	const maxStreamDuration = 300 * time.Second // 300 seconds, slightly less than 305s limit
+	var pendingAudioChunks [][]byte // Buffer for audio chunks during stream recreation
+	
+	// Function to create or recreate the stream
+	createStream := func() error {
+		streamMu.Lock()
+		defer streamMu.Unlock()
+		
+		// Close existing stream if it exists
+		if stream != nil {
+			stream.CloseSend()
+		}
+		
+		// Create a new bidirectional streaming RPC
+		newStream, err := client.StreamingRecognize(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create streaming client: %v", err)
+		}
+		
+		// Send the initial configuration message
+		if err := newStream.Send(&reqTemplate); err != nil {
+			return fmt.Errorf("failed to send initial config to Speech-to-Text: %v", err)
+		}
+		
+		stream = newStream
+		streamStartTime = time.Now()
+		
+		// Send any buffered audio chunks
+		if len(pendingAudioChunks) > 0 {
+			logger.Info("Sending buffered audio chunks after stream recreation", "chunks", len(pendingAudioChunks))
+			for _, chunk := range pendingAudioChunks {
+				if err := newStream.Send(&speechpb.StreamingRecognizeRequest{
+					StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
+						AudioContent: chunk,
+					},
+				}); err != nil {
+					logger.Error("Failed to send buffered audio chunk", "error", err)
+					break
+				}
+			}
+			// Clear the buffer after sending
+			pendingAudioChunks = nil
+		}
+		
+		logger.Info("Speech-to-Text stream created/recreated")
+		
+		// Notify client about stream recreation
+		statusResponse := StatusResponse{
+			Type:      "status",
+			Status:    "stream_recreated",
+			Message:   "Speech recognition stream was recreated for optimal performance",
+			Timestamp: time.Now(),
+		}
+		statusData, _ := json.Marshal(statusResponse)
+		// Send status update in a goroutine to avoid blocking
+		go func() {
+			mu.Lock()
+			conn.WriteMessage(websocket.TextMessage, statusData)
+			mu.Unlock()
+		}()
+		
+		return nil
+	}
+	
+	// Create initial stream
+	if err := createStream(); err != nil {
+		logger.Error("Failed to create initial stream", "error", err)
 		return
 	}
-
-	// Send the initial configuration message
-	if err := stream.Send(&req); err != nil {
-		logger.Error("Failed to send initial config to Speech-to-Text", "error", err)
-		return
-	}
-
-	logger.Info("Connected to Google Cloud Speech-to-Text streaming session")
 
 	var fullTranscription strings.Builder
 	var currentSummary string
@@ -305,15 +372,38 @@ If this is an update to an existing summary, maintain the structure and content 
 	// Goroutine to receive messages from Speech-to-Text and send to client
 	go func() {
 		for {
-			resp, err := stream.Recv()
+			var currentStream speechpb.Speech_StreamingRecognizeClient
+			
+			// Get current stream reference safely
+			streamMu.Lock()
+			currentStream = stream
+			streamMu.Unlock()
+			
+			if currentStream == nil {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			
+			resp, err := currentStream.Recv()
 			if err == io.EOF {
-				// Stream closed
-				logger.Debug("Speech-to-Text stream closed")
-				return
+				// Stream closed, try to recreate
+				logger.Debug("Speech-to-Text stream closed, recreating...")
+				if recreateErr := createStream(); recreateErr != nil {
+					logger.Error("Failed to recreate stream", "error", recreateErr)
+					return
+				}
+				// After recreation, continue to get new stream reference
+				continue
 			}
 			if err != nil {
 				logger.Error("Error receiving from Speech-to-Text", "error", err)
-				return
+				// Try to recreate stream on error
+				if recreateErr := createStream(); recreateErr != nil {
+					logger.Error("Failed to recreate stream after error", "error", recreateErr)
+					return
+				}
+				// After recreation, continue to get new stream reference
+				continue
 			}
 
 			if err := resp.Error; err != nil {
@@ -399,6 +489,32 @@ If this is an update to an existing summary, maintain the structure and content 
 			}
 		}
 	}()
+	
+	// Goroutine to monitor stream duration and restart before hitting the limit
+	go func() {
+		ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-ticker.C:
+				streamMu.Lock()
+				elapsed := time.Since(streamStartTime)
+				streamMu.Unlock()
+				
+				if elapsed >= maxStreamDuration {
+					logger.Info("Stream duration limit approaching, recreating stream",
+						"elapsed", elapsed,
+						"limit", maxStreamDuration)
+					if err := createStream(); err != nil {
+						logger.Error("Failed to recreate stream due to duration limit", "error", err)
+					}
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// Main loop to read from client and send audio to Speech-to-Text
 	audioChunkCount := 0
@@ -419,17 +535,48 @@ If this is an update to an existing summary, maintain the structure and content 
 				"bytes", len(message))
 
 			// Send audio content to Speech-to-Text
-			if err := stream.Send(&speechpb.StreamingRecognizeRequest{
-				StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
-					AudioContent: message,
-				},
-			}); err != nil {
-				logger.Error("Failed to send audio chunk to Speech-to-Text",
-					"chunkNumber", audioChunkCount,
-					"error", err)
-				return
+			streamMu.Lock()
+			currentStream := stream
+			streamMu.Unlock()
+			
+			if currentStream != nil {
+				if err := currentStream.Send(&speechpb.StreamingRecognizeRequest{
+					StreamingRequest: &speechpb.StreamingRecognizeRequest_AudioContent{
+						AudioContent: message,
+					},
+				}); err != nil {
+					logger.Error("Failed to send audio chunk to Speech-to-Text",
+						"chunkNumber", audioChunkCount,
+						"error", err)
+					
+					// Buffer this audio chunk before recreating stream
+					streamMu.Lock()
+					pendingAudioChunks = append(pendingAudioChunks, message)
+					// Limit buffer size to prevent memory issues
+					if len(pendingAudioChunks) > 10 {
+						pendingAudioChunks = pendingAudioChunks[1:] // Remove oldest chunk
+					}
+					streamMu.Unlock()
+					
+					// Try to recreate stream on send error
+					if recreateErr := createStream(); recreateErr != nil {
+						logger.Error("Failed to recreate stream after send error", "error", recreateErr)
+						return
+					}
+					continue
+				}
+			} else {
+				// Stream is nil, buffer the audio chunk
+				streamMu.Lock()
+				pendingAudioChunks = append(pendingAudioChunks, message)
+				// Limit buffer size to prevent memory issues
+				if len(pendingAudioChunks) > 10 {
+					pendingAudioChunks = pendingAudioChunks[1:] // Remove oldest chunk
+				}
+				streamMu.Unlock()
+				logger.Debug("Buffered audio chunk (stream is nil)", "chunkNumber", audioChunkCount)
 			}
-			logger.Debug("Successfully sent audio chunk to Speech-to-Text",
+			logger.Debug("Successfully processed audio chunk",
 				"chunkNumber", audioChunkCount)
 		case websocket.TextMessage:
 			logger.Debug("Received text message", "message", string(message))
@@ -442,7 +589,11 @@ If this is an update to an existing summary, maintain the structure and content 
 	}
 
 	// Close the Speech-to-Text stream when the WebSocket connection closes
-	stream.CloseSend()
+	streamMu.Lock()
+	if stream != nil {
+		stream.CloseSend()
+	}
+	streamMu.Unlock()
 	logger.Info("WebSocket connection closed")
 }
 
