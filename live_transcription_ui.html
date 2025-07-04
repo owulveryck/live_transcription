@@ -1890,14 +1890,14 @@
                     <div class="form-group">
                         <label class="form-label">Session Management</label>
                         <div style="display: flex; gap: var(--space-3);">
-                            <button type="button" onclick="exportSessions()" class="btn btn-outline">
+                            <button type="button" onclick="exportToMarkdown()" class="btn btn-outline">
                                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
                                 </svg>
-                                Export Sessions
+                                Export to Markdown
                             </button>
                         </div>
-                        <p class="form-hint">Export all saved transcription sessions to a JSON file for backup or analysis.</p>
+                        <p class="form-hint">Export the current transcript and summary as formatted markdown text, ready to paste into any chat assistant for further analysis.</p>
                     </div>
                 </div>
             </div>
@@ -1918,37 +1918,41 @@
                     <span id="connectionText">Disconnected</span>
                 </div>
                 <div class="action-buttons">
-                    <button id="startBtn" class="btn btn-primary btn-fab btn-fab-large" aria-describedby="start-btn-desc" title="Start Live Transcription">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <button id="startBtn" class="btn btn-primary" aria-describedby="start-btn-desc">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
                             <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
                         </svg>
+                        <span class="btn-text">Start Live Transcription</span>
                         <span class="btn-spinner hidden">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
                                 <path opacity="0.3" d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                                 <path d="M8 1a7 7 0 0 1 7 7h-2a5 5 0 0 0-5-5V1z"/>
                             </svg>
                         </span>
                     </button>
                     
-                    <button id="stopBtn" class="btn btn-danger btn-fab" disabled aria-describedby="stop-btn-desc" title="Stop Transcription">
+                    <button id="stopBtn" class="btn btn-danger" disabled aria-describedby="stop-btn-desc">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
                         </svg>
+                        Stop Transcription
                     </button>
                     
-                    <button id="clearBtn" class="btn btn-outline btn-fab" onclick="clearTranscripts()" disabled aria-describedby="clear-btn-desc" title="Clear Transcripts">
+                    <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled aria-describedby="clear-btn-desc">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6zM5 4V3h6v1H5zm0 2h6v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6z"/>
                             <path d="M8 7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6A.5.5 0 0 1 8 7z"/>
                         </svg>
+                        Clear Transcripts
                     </button>
                     
-                    <button id="testLangBtn" class="btn btn-secondary btn-fab" title="Test Language Codes" onclick="testLanguageCodes()">
+                    <button id="testLangBtn" class="btn btn-secondary" onclick="testLanguageCodes()">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
                             <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
                         </svg>
+                        Test Language Codes
                     </button>
                 </div>
                 <div class="sr-only">
@@ -2104,12 +2108,18 @@
             const sessionManager = {
                 currentSession: null,
                 startSession: function() {
-                    this.currentSession = { transcript: '', summary: '' };
+                    this.currentSession = { 
+                        transcript: '', 
+                        summary: '',
+                        startTime: new Date().toISOString(),
+                        endTime: null
+                    };
                 },
                 updateSession: function(transcript, summary) {
                     if (this.currentSession) {
                         this.currentSession.transcript = transcript;
                         this.currentSession.summary = summary;
+                        this.currentSession.endTime = new Date().toISOString();
                     }
                 },
                 saveSession: function() {
@@ -2120,15 +2130,125 @@
                         localStorage.setItem('sessions', JSON.stringify(sessions));
                     }
                 },
-                exportSessions: function() {
-                    const sessions = localStorage.getItem('sessions') || '[]';
-                    const blob = new Blob([sessions], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'sessions.json';
-                    a.click();
-                    URL.revokeObjectURL(url);
+                exportToMarkdown: function() {
+                    const finalTranscript = document.getElementById('finalTranscriptOutput')?.value || '';
+                    const summaryElement = document.getElementById('summaryOutput');
+                    const summaryMarkdown = window.rawSummaryMarkdown || '';
+                    
+                    if (!finalTranscript && !summaryMarkdown) {
+                        showToast('No content to export', 'warning');
+                        return;
+                    }
+                    
+                    const now = new Date();
+                    const dateStr = now.toLocaleDateString();
+                    const timeStr = now.toLocaleTimeString();
+                    
+                    let markdown = `# Transcription Session\n\n`;
+                    markdown += `**Date:** ${dateStr}\n`;
+                    markdown += `**Time:** ${timeStr}\n\n`;
+                    markdown += `---\n\n`;
+                    
+                    if (finalTranscript.trim()) {
+                        markdown += `## 📝 Final Transcript\n\n`;
+                        // Clean up the transcript by removing timestamps for better readability
+                        const cleanTranscript = finalTranscript
+                            .split('\n')
+                            .map(line => {
+                                // Remove timestamp patterns like [12:34:56 PM]
+                                return line.replace(/^\[\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM)?\]\s*/, '');
+                            })
+                            .filter(line => line.trim())
+                            .join('\n\n');
+                        
+                        markdown += `${cleanTranscript}\n\n`;
+                        markdown += `---\n\n`;
+                    }
+                    
+                    if (summaryMarkdown.trim()) {
+                        markdown += `## 📋 AI Summary\n\n`;
+                        markdown += `${summaryMarkdown}\n\n`;
+                        markdown += `---\n\n`;
+                    }
+                    
+                    markdown += `## 💡 Usage Notes\n\n`;
+                    markdown += `This content was generated using live audio transcription with Google Cloud Speech-to-Text API and summarized using Google's Gemini AI.\n\n`;
+                    markdown += `**You can:**\n`;
+                    markdown += `- Copy this entire text and paste it into any chat assistant\n`;
+                    markdown += `- Ask questions about the content\n`;
+                    markdown += `- Request further analysis or insights\n`;
+                    markdown += `- Use it as context for follow-up conversations\n\n`;
+                    
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(markdown).then(() => {
+                        showToast('Markdown copied to clipboard! Ready to paste into chat assistant.', 'success', 6000);
+                    }).catch(err => {
+                        console.error('Failed to copy to clipboard:', err);
+                        // Fallback: show markdown in a modal for manual copying
+                        this.showMarkdownModal(markdown);
+                    });
+                },
+                showMarkdownModal: function(markdown) {
+                    // Create a modal to show the markdown for manual copying
+                    const modal = document.createElement('div');
+                    modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.7);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                    `;
+                    
+                    const content = document.createElement('div');
+                    content.style.cssText = `
+                        background: var(--surface-card);
+                        border-radius: var(--radius-lg);
+                        padding: var(--space-6);
+                        max-width: 80%;
+                        max-height: 80%;
+                        overflow: auto;
+                        box-shadow: var(--shadow-xl);
+                    `;
+                    
+                    content.innerHTML = `
+                        <h3 style="margin-top: 0; color: var(--text-primary);">Export to Markdown</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">Copy the text below and paste it into your chat assistant:</p>
+                        <textarea readonly style="
+                            width: 100%;
+                            height: 400px;
+                            font-family: var(--font-family-mono);
+                            font-size: 0.875rem;
+                            padding: var(--space-3);
+                            border: 1px solid var(--border-primary);
+                            border-radius: var(--radius-md);
+                            background: var(--bg-tertiary);
+                            color: var(--text-primary);
+                            resize: vertical;
+                        ">${markdown}</textarea>
+                        <div style="margin-top: var(--space-4); display: flex; gap: var(--space-3); justify-content: flex-end;">
+                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" class="btn btn-outline">Close</button>
+                            <button onclick="
+                                this.parentElement.parentElement.querySelector('textarea').select();
+                                document.execCommand('copy');
+                                showToast('Copied to clipboard!', 'success');
+                            " class="btn btn-primary">Copy Text</button>
+                        </div>
+                    `;
+                    
+                    modal.appendChild(content);
+                    document.body.appendChild(modal);
+                    
+                    // Close on background click
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.remove();
+                        }
+                    });
                 }
             };
             
@@ -2455,6 +2575,28 @@
                 const langInput = document.getElementById('languageCodes');
                 console.log('📝 Initial language codes value:', langInput ? langInput.value : 'Input not found');
                 
+                // Initialize preset functionality
+                document.querySelectorAll('.preset-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        // Remove previous selection
+                        document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+                        
+                        // Select current card
+                        card.classList.add('selected');
+                        
+                        const presetType = card.dataset.preset;
+                        window.applyPreset(presetType);
+                    });
+                    
+                    // Keyboard support
+                    card.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            card.click();
+                        }
+                    });
+                });
+                
                 // Show welcome message
                 setTimeout(() => {
                     showToast('Press ? to view keyboard shortcuts', 'info', 5000);
@@ -2465,6 +2607,11 @@
         <script>
             const recorder = new LiveAudioRecorder();
 
+            // Global variables for state management
+            let customClassCounter = 0;
+            let customClassesVisible = false;
+            let advancedConfigVisible = false;
+
             document.addEventListener('DOMContentLoaded', () => {
                 recorder.populateAudioDevices();
 
@@ -2472,7 +2619,6 @@
                 const toggleAdvancedConfigBtn = document.getElementById('toggleAdvancedConfigBtn');
                 const advancedDocumentationSection = document.getElementById('advancedDocumentationSection');
                 const advancedRecognitionSection = document.getElementById('advancedRecognitionSection');
-                let advancedConfigVisible = false;
 
                 toggleAdvancedConfigBtn.addEventListener('click', () => {
                     advancedConfigVisible = !advancedConfigVisible;
@@ -2499,7 +2645,6 @@
 
                 // Set up custom classes functionality
                 const addCustomClassBtn = document.getElementById('addCustomClassBtn');
-                let customClassCounter = 0;
 
                 addCustomClassBtn.addEventListener('click', () => {
                     createCustomClassItem();
@@ -2508,7 +2653,6 @@
                 // Set up toggle functionality for custom classes
                 const toggleCustomClassesBtn = document.getElementById('toggleCustomClassesBtn');
                 const customClassesContainer = document.getElementById('customClassesContainer');
-                let customClassesVisible = false;
 
                 toggleCustomClassesBtn.addEventListener('click', () => {
                     customClassesVisible = !customClassesVisible;
@@ -3158,10 +3302,9 @@
                     reader.readAsText(file);
                 }
                 
-                // Export sessions function for global access
-                window.exportSessions = () => {
-                    sessionManager.exportSessions();
-                    showToast('Sessions exported successfully!', 'success');
+                // Export to markdown function for global access
+                window.exportToMarkdown = () => {
+                    sessionManager.exportToMarkdown();
                 };
                 
                 // Test function to debug language codes
@@ -3181,6 +3324,170 @@
                         showToast('Language codes input element not found!', 'error');
                     }
                 };
+                
+                // Preset configurations
+                const presets = {
+                    meeting: {
+                        name: 'Meeting',
+                        languages: 'en-US,fr-FR',
+                        phraseSets: 'meeting:15\nconference:12\nagenda:10\naction items:12\nbudget:10\nquarterly:10\nrevenue:12\nstrategy:15',
+                        customClasses: [{
+                            name: 'Business Terms',
+                            items: 'quarterly\nrevenue\nstrategy\nROI\nKPI\nbudget\nprofit\nloss\nmeeting\nconference',
+                            boost: 12
+                        }]
+                    },
+                    interview: {
+                        name: 'Interview',
+                        languages: 'en-US',
+                        phraseSets: 'experience:15\nqualifications:12\nposition:10\ncompany:12\nskills:10\nresponsibilities:12',
+                        customClasses: [{
+                            name: 'Job Terms',
+                            items: 'skills\nresponsibilities\nsalary\nbenefits\nteam\ncareer\nposition\nexperience\nqualifications\ninterview',
+                            boost: 12
+                        }]
+                    },
+                    lecture: {
+                        name: 'Lecture',
+                        languages: 'en-US',
+                        phraseSets: 'chapter:15\nconcept:12\ntheory:10\nexample:8\nresearch:12\nanalysis:10',
+                        customClasses: [{
+                            name: 'Academic Terms',
+                            items: 'research\nanalysis\nhypothesis\nconclusion\nmethodology\nresults\ntheory\nconcept\nchapter\nlecture',
+                            boost: 15
+                        }]
+                    },
+                    custom: {
+                        name: 'Custom',
+                        languages: 'en-US,fr-FR',
+                        phraseSets: '',
+                        customClasses: []
+                    }
+                };
+                
+                // Make applyPreset function global for preset card access
+                window.applyPreset = function(presetType) {
+                    const preset = presets[presetType];
+                    if (!preset) {
+                        showToast('Preset not found!', 'error');
+                        return;
+                    }
+                    
+                    console.log('🎯 Applying preset:', preset.name);
+                    
+                    // Apply language settings
+                    const languageInput = document.getElementById('languageCodes');
+                    if (languageInput) {
+                        languageInput.value = preset.languages;
+                    }
+                    
+                    // Apply phrase sets
+                    const phraseSetsInput = document.getElementById('phraseSets');
+                    if (phraseSetsInput) {
+                        phraseSetsInput.value = preset.phraseSets;
+                    }
+                    
+                    // Clear existing custom classes
+                    const customClassesList = document.getElementById('customClassesList');
+                    if (customClassesList) {
+                        customClassesList.innerHTML = '';
+                        customClassCounter = 0;
+                    }
+                    
+                    // Get references to elements that need to be accessed
+                    const customClassesContainer = document.getElementById('customClassesContainer');
+                    const toggleCustomClassesBtn = document.getElementById('toggleCustomClassesBtn');
+                    
+                    // Apply custom classes
+                    if (preset.customClasses && preset.customClasses.length > 0) {
+                        preset.customClasses.forEach(classConfig => {
+                            createCustomClassItem(classConfig.name, classConfig.items, classConfig.boost);
+                        });
+                        
+                        // Show custom classes section
+                        if (customClassesContainer) {
+                            customClassesContainer.style.display = 'block';
+                            customClassesVisible = true;
+                        }
+                    } else {
+                        // Hide custom classes section for custom preset
+                        if (customClassesContainer) {
+                            customClassesContainer.style.display = 'none';
+                            customClassesVisible = false;
+                        }
+                    }
+                    
+                    // Update toggle button
+                    updateCustomClassesToggle();
+                    
+                    showToast(`${preset.name} preset applied successfully!`, 'success');
+                };
+                
+                // Function to update custom classes toggle button text
+                function updateCustomClassesToggle() {
+                    const toggleCustomClassesBtn = document.getElementById('toggleCustomClassesBtn');
+                    if (toggleCustomClassesBtn) {
+                        if (customClassesVisible) {
+                            toggleCustomClassesBtn.innerHTML = `
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                                </svg>
+                                Hide Custom Classes
+                            `;
+                        } else {
+                            toggleCustomClassesBtn.innerHTML = `
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                                </svg>
+                                Show Custom Classes
+                            `;
+                        }
+                    }
+                }
+                
+                // Function to create custom class items (moved here for preset use)
+                function createCustomClassItem(name = '', items = '', boost = 12) {
+                    customClassCounter++;
+                    const id = `customClass${customClassCounter}`;
+                    
+                    const customClassHtml = `
+                        <div class="custom-class-item" data-id="${id}">
+                            <div class="custom-class-header">
+                                <div class="form-group custom-class-name-group">
+                                    <label class="form-label">Class Name</label>
+                                    <input type="text" class="form-control custom-class-name" placeholder="e.g., AI Companies" value="${name}">
+                                </div>
+                                <div class="form-group custom-class-boost-group">
+                                    <label class="form-label">Boost</label>
+                                    <input type="number" class="form-control custom-class-boost" min="0" max="20" step="0.5" value="${boost}">
+                                </div>
+                                <button type="button" class="custom-class-remove" title="Remove this custom class">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Items (one per line)</label>
+                                <textarea class="form-control custom-class-items-textarea" placeholder="OpenAI&#10;Anthropic&#10;Google&#10;Microsoft&#10;Claude&#10;ChatGPT">${items}</textarea>
+                                <p class="form-hint">Enter vocabulary items for this class, one per line</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const customClassesList = document.getElementById('customClassesList');
+                    if (customClassesList) {
+                        customClassesList.insertAdjacentHTML('beforeend', customClassHtml);
+                        
+                        // Add event listener for remove button
+                        const newItem = customClassesList.querySelector(`[data-id="${id}"]`);
+                        const removeBtn = newItem.querySelector('.custom-class-remove');
+                        removeBtn.addEventListener('click', () => {
+                            newItem.remove();
+                        });
+                    }
+                }
                 
                 // Simple keyboard shortcuts
                 document.addEventListener('keydown', (e) => {
