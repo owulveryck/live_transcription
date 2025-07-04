@@ -70,6 +70,13 @@ type KeywordsMessage struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// EndPromptMessage represents an end prompt sent from the client when stopping
+type EndPromptMessage struct {
+	Type      string    `json:"type"`
+	EndPrompt string    `json:"endPrompt"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 // TranscriptionResponse represents the transcription response sent back to the client
 type TranscriptionResponse struct {
 	Type      string    `json:"type"`
@@ -1189,6 +1196,102 @@ If this is an update to an existing summary, maintain the structure and content 
 				if err := json.Unmarshal(message, &newConfig); err == nil {
 					logger.Info("Received new config message", "config", newConfig)
 				}
+			case "end_prompt":
+				// Handle end prompt message (final summary generation when stopping)
+				logger.Info("End prompt message received",
+					"rawMessage", string(message))
+
+				var endPromptMsg EndPromptMessage
+				if err := json.Unmarshal(message, &endPromptMsg); err != nil {
+					logger.Error("Failed to parse end prompt message",
+						"error", err,
+						"rawMessage", string(message),
+						"messageLength", len(message))
+					continue
+				}
+				
+				logger.Info("End prompt processed successfully",
+					"endPrompt", endPromptMsg.EndPrompt,
+					"clientTimestamp", endPromptMsg.Timestamp,
+					"serverTimestamp", time.Now(),
+					"timeDelta", time.Since(endPromptMsg.Timestamp))
+
+				// Generate final summary with end prompt asynchronously
+				if projectID != "" && location != "" {
+					go func() {
+						// Create a new context with timeout for the end prompt generation
+						// This prevents cancellation when WebSocket closes
+						endPromptCtx, endPromptCancel := context.WithTimeout(context.Background(), 30*time.Second)
+						defer endPromptCancel()
+
+						fullTranscript := strings.TrimSpace(fullTranscription.String())
+						if fullTranscript == "" {
+							logger.Warn("No transcript available for end prompt summary")
+							return
+						}
+
+						// Safely read current summary
+						summaryMu.Lock()
+						previousSummary := currentSummary
+						summaryMu.Unlock()
+
+						// Combine original summary prompt with end prompt
+						combinedPrompt := summaryPrompt + "\n\n" + endPromptMsg.EndPrompt
+
+						logger.Info("Generating final summary with end prompt",
+							"transcriptLength", len(fullTranscript),
+							"previousSummaryLength", len(previousSummary),
+							"combinedPromptLength", len(combinedPrompt))
+
+						summary, err := generateSummary(endPromptCtx, projectID, location, fullTranscript, previousSummary, combinedPrompt, customWords)
+						if err != nil {
+							logger.Error("Error generating final summary with end prompt", "error", err)
+							return
+						}
+						if summary != "" {
+							// Safely update current summary
+							summaryMu.Lock()
+							currentSummary = summary
+							summaryMu.Unlock()
+
+							logger.Info("Final summary with end prompt generated", "summaryLength", len(summary))
+							summaryResponse := SummaryResponse{
+								Type:      "summary",
+								Text:      summary,
+								Timestamp: time.Now(),
+							}
+							summaryData, err := json.Marshal(summaryResponse)
+							if err != nil {
+								logger.Error("Failed to marshal final summary response", "error", err)
+								return
+							}
+							
+							// Check if WebSocket is still open before sending
+							mu.Lock()
+							defer mu.Unlock()
+							
+							if conn != nil {
+								logger.Info("Sending final summary to client",
+									"summaryLength", len(summary),
+									"connectionState", "open")
+								
+								if err := conn.WriteMessage(websocket.TextMessage, summaryData); err != nil {
+									logger.Warn("Failed to send final summary to client", 
+										"error", err,
+										"errorType", fmt.Sprintf("%T", err))
+								} else {
+									logger.Info("Final summary sent to client successfully",
+										"summaryLength", len(summary))
+								}
+							} else {
+								logger.Warn("WebSocket connection is nil, final summary generated but not sent",
+									"summaryLength", len(summary))
+							}
+						}
+					}()
+				} else {
+					logger.Warn("GCP configuration not available for end prompt summary generation")
+				}
 			case "keywords":
 				// Handle keywords message (dynamic keyword updates during recording)
 				logger.Info("Dynamic keywords update received",
@@ -1308,8 +1411,21 @@ func serveDefaultPrompt(w http.ResponseWriter, r *http.Request) {
 
 If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
 
+	defaultEndPrompt := `**IMPORTANT**: Keep the existing summary language and maintain the structure above.
+
+Now add a **conclusion** to finalize this conversation summary. Include:
+
+## Conclusion
+- **Key Points**: Summarize the main takeaways from the conversation
+- **Important Decisions**: Highlight any decisions or agreements made
+- **Action Items**: List specific next steps or tasks identified
+- **Follow-up**: Note any planned future discussions or meetings
+
+Ensure the conclusion flows naturally from the existing summary and provides clear closure to the conversation.`
+
 	response := map[string]string{
-		"defaultPrompt": defaultSummaryPrompt,
+		"defaultPrompt":    defaultSummaryPrompt,
+		"defaultEndPrompt": defaultEndPrompt,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
