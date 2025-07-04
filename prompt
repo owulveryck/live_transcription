@@ -1,0 +1,6 @@
+Let's clean the UI.
+- Remove the Quick Start Preset (they are not useful)
+- Put the recording controls after the menu (just on top of the visualizer-row)
+- Replace the activity pulse by visualizerBars
+- Remove recordingStatus
+
