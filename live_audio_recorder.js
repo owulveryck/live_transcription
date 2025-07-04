@@ -505,6 +505,9 @@
             
             const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
             
+            // Get current custom prompt from the frontend
+            const customPrompt = window.getCurrentSummaryPrompt ? window.getCurrentSummaryPrompt() : '';
+            
             // Send config message for all modes
             const configMessage = {
                 type: "config",
@@ -517,7 +520,8 @@
                 alternativeLanguageCodes: languageCodes.slice(1),
                 customWords: customWords || [],
                 phraseSets: phraseSetsConfig,
-                classes: classesConfig
+                classes: classesConfig,
+                summaryPrompt: customPrompt
             };
             console.log("📤 Sending config message:", configMessage);
             this.socket.send(JSON.stringify(configMessage));

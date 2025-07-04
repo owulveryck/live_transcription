@@ -60,6 +60,7 @@ type ConfigMessage struct {
 	CustomWords              []string         `json:"customWords"`
 	PhraseSets               *PhraseSetConfig `json:"phraseSets"`
 	Classes                  *ClassesConfig   `json:"classes"`
+	SummaryPrompt            string           `json:"summaryPrompt,omitempty"`
 }
 
 // KeywordsMessage represents keywords sent from the client during an active session
@@ -556,16 +557,22 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("WebSocket connection established")
 
+	// Create a context that can be cancelled when the WebSocket closes
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Read the initial configuration message from the client
 	_, p, err := conn.ReadMessage()
 	if err != nil {
 		logger.Error("Failed to read config message", "error", err)
+		cancel() // Cancel context on error
 		return
 	}
 
 	var config ConfigMessage
 	if err := json.Unmarshal(p, &config); err != nil {
 		logger.Error("Failed to unmarshal config message", "error", err)
+		cancel() // Cancel context on error
 		return
 	}
 
@@ -662,8 +669,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// Debug: Log the exact format string received
 	logger.Debug("Exact audio format received", "format", config.AudioFormat.Format)
-
-	ctx := context.Background()
 
 	// Get project ID and location from environment variables
 	projectID := os.Getenv("GCP_PROJECT_ID")
@@ -926,8 +931,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
 
-	// Get summarization prompt from environment variable, or use default
-	summaryPrompt := os.Getenv("SUMMARY_PROMPT")
+	// Get summarization prompt from config, or use default
+	summaryPrompt := config.SummaryPrompt
 	if summaryPrompt == "" {
 		summaryPrompt = defaultSummaryPrompt
 	}
@@ -1106,7 +1111,11 @@ If this is an update to an existing summary, maintain the structure and content 
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Error("Unexpected WebSocket error", "error", err)
+			} else {
+				logger.Info("WebSocket connection closed by client")
 			}
+			// Cancel context when WebSocket closes to stop all related goroutines
+			cancel()
 			break
 		}
 
@@ -1271,10 +1280,43 @@ If this is an update to an existing summary, maintain the structure and content 
 	// Close the Speech-to-Text stream when the WebSocket connection closes
 	streamMu.Lock()
 	if stream != nil {
+		logger.Info("Closing Speech-to-Text stream due to WebSocket closure")
 		stream.CloseSend()
 	}
 	streamMu.Unlock()
-	logger.Info("WebSocket connection closed")
+	
+	// Ensure context is cancelled to stop all related goroutines
+	cancel()
+	logger.Info("WebSocket connection and Speech-to-Text stream closed")
+}
+
+// serveDefaultPrompt serves the default summary prompt as JSON
+func serveDefaultPrompt(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	defaultSummaryPrompt := `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
+
+1. **Language**: Write the summary in the same language as the majority of the transcript
+2. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
+3. **Completion**: Simply complete or extend the summary with new information from the transcript
+4. **Accuracy**: Do not invent or add information that is not present in the transcript
+5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
+6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
+
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
+
+	response := map[string]string{
+		"defaultPrompt": defaultSummaryPrompt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logger.Error("Failed to encode default prompt response", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // serveStaticFiles serves static HTML and JS files
@@ -1286,8 +1328,11 @@ func serveStaticFiles(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 		http.ServeFile(w, r, "live_audio_recorder.js")
 	case "/favicon.ico":
-		w.Header().Set("Content-Type", "image/x-icon")
-		http.ServeFile(w, r, "favicon.ico")
+		w.Header().Set("Content-Type", "image/png")
+		http.ServeFile(w, r, "favicon.png")
+	case "/favicon.png":
+		w.Header().Set("Content-Type", "image/png")
+		http.ServeFile(w, r, "favicon.png")
 	default:
 		http.NotFound(w, r)
 	}
@@ -1299,6 +1344,7 @@ func main() {
 
 	// Set up routes
 	http.HandleFunc("/ws", handleWebSocket)
+	http.HandleFunc("/api/default-prompt", serveDefaultPrompt)
 	http.HandleFunc("/", serveStaticFiles)
 
 	// Start server

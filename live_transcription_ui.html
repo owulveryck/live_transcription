@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Audio Transcription</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/favicon.png">
     <style>
         :root {
             /* Light theme colors */
@@ -1747,14 +1747,90 @@
             </div>
         </div>
 
+        <!-- Recording Controls (Always Visible) -->
+        <div class="control-panel" style="margin-bottom: var(--space-6);">
+            <div class="control-section">
+                <h3>
+                    <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
+                    </svg>
+                    Recording Controls
+                </h3>
+                
+                <!-- Connection Status -->
+                <div class="connection-status" style="margin-bottom: var(--space-4);">
+                    <div class="connection-dot" id="connectionDot"></div>
+                    <span id="connectionText">Disconnected</span>
+                </div>
+                <div class="action-buttons">
+                    <button id="startBtn" class="btn btn-primary" aria-describedby="start-btn-desc">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
+                            <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
+                        </svg>
+                        <span class="btn-text">Start Live Transcription</span>
+                        <span class="btn-spinner hidden">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
+                                <path opacity="0.3" d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path d="M8 1a7 7 0 0 1 7 7h-2a5 5 0 0 0-5-5V1z"/>
+                            </svg>
+                        </span>
+                    </button>
+                    
+                    <button id="stopBtn" class="btn btn-danger" disabled aria-describedby="stop-btn-desc">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
+                        </svg>
+                        Stop Transcription
+                    </button>
+                    
+                    <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled aria-describedby="clear-btn-desc">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6zM5 4V3h6v1H5zm0 2h6v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6z"/>
+                            <path d="M8 7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6A.5.5 0 0 1 8 7z"/>
+                        </svg>
+                        Clear Transcripts
+                    </button>
+                    
+                    <button id="testLangBtn" class="btn btn-secondary" onclick="testLanguageCodes()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                            <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
+                        </svg>
+                        Test Language Codes
+                    </button>
+                </div>
+                <div class="sr-only">
+                    <div id="start-btn-desc">Begin recording and transcribing audio in real-time</div>
+                    <div id="stop-btn-desc">Stop the current transcription session</div>
+                    <div id="clear-btn-desc">Remove all transcripts and summaries from the interface</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Navigation Tabs -->
         <div class="nav-tabs-container">
             <div class="nav-tabs">
-                <button class="nav-tab active" data-tab="audio-config">
+                <button class="nav-tab active" data-tab="summary-transcript">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                        <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z"/>
+                    </svg>
+                    Summary & Transcript
+                </button>
+                <button class="nav-tab" data-tab="audio-config">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M8 3a5 5 0 0 0-5 5v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a6 6 0 1 1 12 0v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V8a5 5 0 0 0-5-5z"/>
                     </svg>
                     Audio Configuration
+                </button>
+                <button class="nav-tab" data-tab="summary-config">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                        <path d="M8.646 6.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L10.293 9 8.646 7.354a.5.5 0 0 1 0-.708zM5.354 7.354a.5.5 0 0 0-.708 0l-2 2a.5.5 0 0 0 0 .708l2 2a.5.5 0 0 0 .708-.708L3.707 9l1.647-1.646a.5.5 0 0 0 0-.708z"/>
+                    </svg>
+                    Summary Configuration
                 </button>
                 <button class="nav-tab" data-tab="export-import">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -1781,8 +1857,93 @@
 
         <!-- Tab Content Panels -->
         <div class="tab-content">
+            <!-- Summary & Transcript Tab -->
+            <div class="tab-panel active" id="summary-transcript-panel">
+                <!-- Interim Transcript - Small box on top -->
+                <div class="interim-transcript-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: var(--text-primary); font-size: 1.1rem;">Interim Transcript</h3>
+                        <div class="live-indicator" id="liveIndicator" style="display: none;">
+                            <div class="live-pulse"></div>
+                            <span>LIVE</span>
+                        </div>
+                    </div>
+                    <div style="position: relative;">
+                        <textarea id="interimTranscriptOutput" class="interim-transcript-box" readonly placeholder="Interim transcription will appear here..."></textarea>
+                        <div class="confidence-indicator" id="confidenceIndicator" style="display: none;">
+                            <div class="confidence-dot" id="confidenceDot"></div>
+                            <span id="confidenceText">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Visualizer Section -->
+                <div class="visualizer-section">
+                    <div class="visualizer-container">
+                        <div id="visualizerBars" class="visualizer-bars"></div>
+                        <div class="waveform-container">
+                            <canvas id="waveform" width="400" height="60"></canvas>
+                            <div class="speech-activity-indicator" id="speechActivity">
+                                <div class="activity-pulse"></div>
+                                <span>Speaking</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="recording-time" style="text-align: center; margin-top: 10px;">
+                        <span id="recordingTime">00:00</span>
+                    </div>
+                </div>
+                
+                <!-- Main Content Area - Final Transcript and Summary side by side -->
+                <div class="main-content-area">
+                    <div class="final-transcript-container">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h2>Final Transcript</h2>
+                            <button id="copyFinalTranscriptBtn" class="btn btn-outline" onclick="copyFinalTranscriptToClipboard()" disabled>
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
+                                    <path d="M2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
+                                </svg>
+                                Copy Transcript
+                            </button>
+                        </div>
+                        <textarea id="finalTranscriptOutput" class="transcript-textarea" readonly placeholder="Final transcription will be appended here..."></textarea>
+                    </div>
+
+                    <div class="summary-container">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h2>Summary</h2>
+                            <button id="copySummaryBtn" class="btn btn-outline" onclick="copySummaryToClipboard()" disabled>
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
+                                    <path d="M2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
+                                </svg>
+                                Copy Summary
+                            </button>
+                        </div>
+                        <div id="summaryOutput" class="summary-output empty" data-placeholder="Summary will appear here..."></div>
+                    </div>
+                </div>
+                
+                <!-- Session Statistics -->
+                <div class="stats-container" id="statsContainer">
+                    <div class="stat-item">
+                        <div class="stat-value" id="transcriptCount">0</div>
+                        <div>Transcripts</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="wordCount">0</div>
+                        <div>Words</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="sessionTime">00:00</div>
+                        <div>Session Time</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Audio Configuration Tab -->
-            <div class="tab-panel active" id="audio-config-panel">
+            <div class="tab-panel" id="audio-config-panel">
                 <div class="control-panel">
                     <!-- Audio Configuration Section -->
                     <div class="control-section">
@@ -1839,66 +2000,6 @@
                                 <input type="text" id="languageCodes" class="form-control" placeholder="e.g., fr-FR,en-US" value="fr-FR,en-US">
                                 <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Recording Controls Section -->
-                    <div class="control-section">
-                        <h3>
-                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
-                            </svg>
-                            Recording Controls
-                        </h3>
-                        
-                        <!-- Connection Status -->
-                        <div class="connection-status" style="margin-bottom: var(--space-4);">
-                            <div class="connection-dot" id="connectionDot"></div>
-                            <span id="connectionText">Disconnected</span>
-                        </div>
-                        <div class="action-buttons">
-                            <button id="startBtn" class="btn btn-primary" aria-describedby="start-btn-desc">
-                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                                    <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
-                                    <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
-                                </svg>
-                                <span class="btn-text">Start Live Transcription</span>
-                                <span class="btn-spinner hidden">
-                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
-                                        <path opacity="0.3" d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                                        <path d="M8 1a7 7 0 0 1 7 7h-2a5 5 0 0 0-5-5V1z"/>
-                                    </svg>
-                                </span>
-                            </button>
-                            
-                            <button id="stopBtn" class="btn btn-danger" disabled aria-describedby="stop-btn-desc">
-                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                                    <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
-                                </svg>
-                                Stop Transcription
-                            </button>
-                            
-                            <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled aria-describedby="clear-btn-desc">
-                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                                    <path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6zM5 4V3h6v1H5zm0 2h6v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6z"/>
-                                    <path d="M8 7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6A.5.5 0 0 1 8 7z"/>
-                                </svg>
-                                Clear Transcripts
-                            </button>
-                            
-                            <button id="testLangBtn" class="btn btn-secondary" onclick="testLanguageCodes()">
-                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
-                                    <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
-                                </svg>
-                                Test Language Codes
-                            </button>
-                        </div>
-                        <div class="sr-only">
-                            <div id="start-btn-desc">Begin recording and transcribing audio in real-time</div>
-                            <div id="stop-btn-desc">Stop the current transcription session</div>
-                            <div id="clear-btn-desc">Remove all transcripts and summaries from the interface</div>
                         </div>
                     </div>
                 </div>
@@ -1979,6 +2080,103 @@
                                     </button>
                                 </div>
                                 <p class="form-hint">Export the current transcript and summary as formatted markdown text, ready to paste into any chat assistant for further analysis.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Configuration Tab -->
+            <div class="tab-panel" id="summary-config-panel">
+                <div class="control-panel">
+                    <div class="control-section">
+                        <h3>
+                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                                <path d="M8.646 6.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L10.293 9 8.646 7.354a.5.5 0 0 1 0-.708zM5.354 7.354a.5.5 0 0 0-.708 0l-2 2a.5.5 0 0 0 0 .708l2 2a.5.5 0 0 0 .708-.708L3.707 9l1.647-1.646a.5.5 0 0 0 0-.708z"/>
+                            </svg>
+                            AI Summary Configuration
+                        </h3>
+                        
+                        <!-- Current Prompt Display -->
+                        <div class="control-row" style="margin-bottom: var(--space-4);">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="summaryPrompt" class="form-label">Summary Prompt</label>
+                                <textarea id="summaryPrompt" class="form-control" rows="12" placeholder="Loading default prompt from backend..." style="resize: vertical; min-height: 300px; font-family: var(--font-family-mono); font-size: 0.875rem;"></textarea>
+                                <p class="form-hint">Customize how the AI summarizes your transcripts. This prompt will be sent to the AI model along with your transcript content. Changes take effect on the next recording session.</p>
+                            </div>
+                        </div>
+
+                        <!-- Prompt Management Buttons -->
+                        <div class="control-row" style="margin-bottom: var(--space-4);">
+                            <div class="form-group">
+                                <label class="form-label">Prompt Management</label>
+                                <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                                    <button type="button" id="resetToDefaultPrompt" class="btn btn-outline">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                        </svg>
+                                        Reset to Default
+                                    </button>
+                                    <button type="button" id="savePrompt" class="btn btn-primary">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/>
+                                        </svg>
+                                        Save Prompt
+                                    </button>
+                                    <button type="button" id="exportPrompt" class="btn btn-outline">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                        </svg>
+                                        Export Prompt
+                                    </button>
+                                    <label for="importPromptFile" class="btn btn-outline" style="margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2);">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                        </svg>
+                                        Import Prompt
+                                        <input type="file" id="importPromptFile" accept=".txt,.md" style="display: none;">
+                                    </label>
+                                </div>
+                                <p class="form-hint">Save your custom prompt to localStorage, export it as a file, or import a previously saved prompt from a text file.</p>
+                            </div>
+                        </div>
+
+                        <!-- Preset Prompts -->
+                        <div class="control-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Preset Prompts</label>
+                                <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3);">
+                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="default">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1v-1a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1a1 1 0 0 1-1-1V3z"/>
+                                            <path d="M2 4h12v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/>
+                                        </svg>
+                                        General Summary
+                                    </button>
+                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="meeting">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002A.274.274 0 0 1 15 13H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                                        </svg>
+                                        Meeting Summary
+                                    </button>
+                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="lecture">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5z"/>
+                                        </svg>
+                                        Lecture Notes
+                                    </button>
+                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="interview">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287z"/>
+                                        </svg>
+                                        Interview Summary
+                                    </button>
+                                </div>
+                                <p class="form-hint">Choose from preset prompts optimized for different types of conversations, or create your own custom prompt above.</p>
                             </div>
                         </div>
                     </div>
@@ -2145,77 +2343,6 @@
         
         <div id="audioVisualizer" class="audio-visualizer hidden">
             <div id="visualizerBars" class="audio-visualizer-bars"></div>
-        </div>
-        
-        <!-- Interim Transcript - Small box on top -->
-        <div class="interim-transcript-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin: 0; color: var(--text-primary); font-size: 1.1rem;">Interim Transcript</h3>
-                <div class="live-indicator" id="liveIndicator" style="display: none;">
-                    <div class="live-pulse"></div>
-                    <span>LIVE</span>
-                </div>
-            </div>
-            <div style="position: relative;">
-                <textarea id="interimTranscriptOutput" class="interim-transcript-box" readonly placeholder="Interim transcription will appear here..."></textarea>
-                <div class="confidence-indicator" id="confidenceIndicator" style="display: none;">
-                    <div class="confidence-dot" id="confidenceDot"></div>
-                    <span id="confidenceText">--</span>
-                </div>
-            </div>
-            
-            <!-- Enhanced waveform visualization -->
-            <div class="waveform-container" id="waveformContainer" style="display: none;">
-                <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
-                <div class="speech-activity" id="speechActivity"></div>
-            </div>
-        </div>
-
-        <!-- Session Statistics -->
-        <div id="statsContainer" class="stats-container" style="display: none; margin-bottom: 20px;">
-            <div class="stat-item">
-                <div class="stat-value" id="transcriptCount">0</div>
-                <div>Transcripts</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="wordsCount">0</div>
-                <div>Words</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="sessionTime">00:00</div>
-                <div>Session Time</div>
-            </div>
-        </div>
-
-        <!-- Main Content Area - Final Transcript and Summary side by side -->
-        <div class="main-content-area">
-            <div class="final-transcript-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2>Final Transcript</h2>
-                    <button id="copyFinalTranscriptBtn" class="btn btn-outline" onclick="copyFinalTranscriptToClipboard()" disabled>
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
-                            <path fill-rule="evenodd" d="M2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
-                        </svg>
-                        Copy Transcript
-                    </button>
-                </div>
-                <textarea id="finalTranscriptOutput" class="transcript-textarea" readonly placeholder="Final transcription will be appended here..."></textarea>
-            </div>
-
-            <div class="summary-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2>Summary</h2>
-                    <button id="copySummaryBtn" class="btn btn-outline" onclick="copySummaryToClipboard()" disabled>
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
-                            <path fill-rule="evenodd" d="M2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
-                        </svg>
-                        Copy Summary
-                    </button>
-                </div>
-                <div id="summaryOutput" class="summary-output empty" data-placeholder="Summary will appear here..."></div>
-            </div>
         </div>
         <!-- Marked.js for markdown rendering -->
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -2761,11 +2888,283 @@
                 });
             }
 
+            // Summary prompt management functionality
+            const summaryPromptManager = {
+                defaultPrompt: '', // Will be loaded from backend
+                backendPromptLoaded: false,
+
+                // Fetch default prompt from backend
+                async fetchDefaultPrompt() {
+                    try {
+                        const response = await fetch('/api/default-prompt');
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.defaultPrompt = data.defaultPrompt;
+                            this.backendPromptLoaded = true;
+                            // Update preset as well for consistency
+                            this.presetPrompts.default = data.defaultPrompt;
+                            // Update placeholder text to show the actual default prompt
+                            this.updatePlaceholder();
+                            console.log('Default prompt loaded from backend');
+                            return this.defaultPrompt;
+                        } else {
+                            console.error('Failed to fetch default prompt from backend');
+                            const fallback = this.getFallbackPrompt();
+                            this.defaultPrompt = fallback;
+                            this.updatePlaceholder();
+                            return fallback;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching default prompt:', error);
+                        const fallback = this.getFallbackPrompt();
+                        this.defaultPrompt = fallback;
+                        this.updatePlaceholder();
+                        return fallback;
+                    }
+                },
+
+                // Update the placeholder text to show the actual default prompt
+                updatePlaceholder() {
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    if (summaryPromptTextarea && this.defaultPrompt) {
+                        summaryPromptTextarea.setAttribute('placeholder', this.defaultPrompt);
+                    }
+                },
+
+                // Fallback prompt if backend is not available
+                getFallbackPrompt() {
+                    return `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
+
+1. **Language**: Write the summary in the same language as the majority of the transcript
+2. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
+3. **Completion**: Simply complete or extend the summary with new information from the transcript
+4. **Accuracy**: Do not invent or add information that is not present in the transcript
+5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
+6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
+
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`;
+                },
+
+                presetPrompts: {
+                    default: `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
+
+1. **Language**: Write the summary in the same language as the majority of the transcript
+2. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
+3. **Completion**: Simply complete or extend the summary with new information from the transcript
+4. **Accuracy**: Do not invent or add information that is not present in the transcript
+5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
+6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
+
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`,
+
+                    meeting: `You are tasked with summarizing a business meeting transcript. Focus on these key areas:
+
+## Meeting Summary Guidelines:
+1. **Language**: Write the summary in the same language as the majority of the transcript
+2. **Key Decisions**: Highlight all decisions made during the meeting
+3. **Action Items**: Extract specific tasks assigned to individuals with deadlines
+4. **Important Discussions**: Summarize key topics and their outcomes
+5. **Attendees**: Note who participated and their key contributions
+6. **Follow-up**: Identify any next steps or future meetings planned
+
+## Format:
+- Use markdown with clear sections
+- **Bold** important decisions and action items
+- Use > for direct quotes when decisions are made
+- Include timestamps for critical moments if available
+
+Maintain previous meeting context when updating existing summaries.`,
+
+                    lecture: `You are tasked with creating comprehensive lecture notes from a transcript. Focus on:
+
+## Lecture Notes Guidelines:
+1. **Language**: Write the notes in the same language as the lecture
+2. **Key Concepts**: Extract and explain main topics and theories presented
+3. **Examples**: Include specific examples used to illustrate concepts
+4. **Structure**: Organize content logically with clear headings
+5. **Important Details**: Capture technical terms, formulas, or specific data mentioned
+6. **Questions**: Note any questions asked and their answers
+
+## Format:
+- Use markdown with hierarchical headings (##, ###)
+- **Bold** key terms and concepts
+- Use bullet points for lists and examples
+- Use > for direct quotes from the lecturer
+- Include diagrams or visual descriptions if mentioned
+
+Build upon previous lecture content when updating existing notes.`,
+
+                    interview: `You are tasked with summarizing an interview transcript. Focus on these aspects:
+
+## Interview Summary Guidelines:
+1. **Language**: Write the summary in the same language as the interview
+2. **Key Responses**: Capture important answers and insights from the interviewee
+3. **Qualifications**: Note relevant experience, skills, and background mentioned
+4. **Personality**: Highlight communication style and interpersonal qualities observed
+5. **Red Flags**: Note any concerns or areas that need follow-up
+6. **Strengths**: Identify standout qualities and achievements
+
+## Format:
+- Use markdown with clear sections for each topic area
+- **Bold** key qualifications and important responses
+- Use > for direct quotes that showcase personality or expertise
+- Include specific examples mentioned by the candidate
+- Note interviewer questions and candidate responses
+
+Update previous interview notes while maintaining consistency in evaluation criteria.`
+                },
+
+                getCurrentPrompt: function() {
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    if (summaryPromptTextarea && summaryPromptTextarea.value.trim()) {
+                        return summaryPromptTextarea.value.trim();
+                    }
+                    
+                    // If textarea is empty, return saved prompt or backend default
+                    const saved = localStorage.getItem('summaryPrompt');
+                    return saved || this.defaultPrompt || this.getFallbackPrompt();
+                },
+
+                savePrompt: function(prompt) {
+                    localStorage.setItem('summaryPrompt', prompt);
+                    showToast('Summary prompt saved successfully!', 'success');
+                },
+
+                async loadPrompt() {
+                    // Fetch default prompt from backend if not already loaded
+                    if (!this.backendPromptLoaded) {
+                        await this.fetchDefaultPrompt();
+                    }
+
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    if (summaryPromptTextarea) {
+                        // Check if user has a saved custom prompt, otherwise use backend default
+                        const saved = localStorage.getItem('summaryPrompt');
+                        summaryPromptTextarea.value = saved || this.defaultPrompt || this.getFallbackPrompt();
+                    }
+                },
+
+                async resetToDefault() {
+                    // Ensure we have the latest default from backend
+                    const defaultPrompt = await this.fetchDefaultPrompt();
+                    
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    if (summaryPromptTextarea) {
+                        summaryPromptTextarea.value = defaultPrompt;
+                        showToast('Reset to backend default prompt', 'info');
+                    }
+                },
+
+                applyPreset: function(presetName) {
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    if (summaryPromptTextarea && this.presetPrompts[presetName]) {
+                        summaryPromptTextarea.value = this.presetPrompts[presetName];
+                        showToast(`Applied ${presetName} preset prompt`, 'success');
+                    }
+                },
+
+                exportPrompt: function() {
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    if (!summaryPromptTextarea || !summaryPromptTextarea.value.trim()) {
+                        showToast('No prompt to export', 'warning');
+                        return;
+                    }
+
+                    const prompt = summaryPromptTextarea.value;
+                    const filename = prompt('Enter filename for prompt export:', `summary-prompt-${new Date().toISOString().split('T')[0]}.txt`);
+                    if (!filename) return;
+
+                    const dataStr = prompt;
+                    const dataBlob = new Blob([dataStr], {type: 'text/plain'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    showToast('Prompt exported successfully!', 'success');
+                },
+
+                importPrompt: function(file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const prompt = e.target.result;
+                            const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                            if (summaryPromptTextarea) {
+                                summaryPromptTextarea.value = prompt;
+                                showToast('Prompt imported successfully!', 'success');
+                            }
+                        } catch (error) {
+                            console.error('Error importing prompt:', error);
+                            showToast('Error importing prompt: ' + error.message, 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            // Initialize prompt management when DOM is loaded
+            async function initPromptManagement() {
+                // Load current prompt (async to fetch from backend)
+                await summaryPromptManager.loadPrompt();
+
+                // Save prompt button
+                const savePromptBtn = document.getElementById('savePrompt');
+                if (savePromptBtn) {
+                    savePromptBtn.addEventListener('click', () => {
+                        const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                        if (summaryPromptTextarea) {
+                            summaryPromptManager.savePrompt(summaryPromptTextarea.value);
+                        }
+                    });
+                }
+
+                // Reset to default button
+                const resetBtn = document.getElementById('resetToDefaultPrompt');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', async () => {
+                        await summaryPromptManager.resetToDefault();
+                    });
+                }
+
+                // Export prompt button
+                const exportBtn = document.getElementById('exportPrompt');
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => {
+                        summaryPromptManager.exportPrompt();
+                    });
+                }
+
+                // Import prompt file input
+                const importFileInput = document.getElementById('importPromptFile');
+                if (importFileInput) {
+                    importFileInput.addEventListener('change', (event) => {
+                        const file = event.target.files[0];
+                        if (file) {
+                            summaryPromptManager.importPrompt(file);
+                        }
+                    });
+                }
+
+                // Preset prompt buttons
+                document.querySelectorAll('.prompt-preset').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const presetName = button.dataset.preset;
+                        summaryPromptManager.applyPreset(presetName);
+                    });
+                });
+            }
+
             // Initialize i18n and theme when the page loads
-            document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('DOMContentLoaded', async () => {
                 i18n.init();
                 initTheme();
                 initTabs();
+                await initPromptManagement();
                 
                 // Initialize connection status
                 connectionStatus.updateStatus('disconnected');
@@ -2880,7 +3279,7 @@
                 const summaryOutput = document.getElementById('summaryOutput');
                 const statsContainer = document.getElementById('statsContainer');
                 const transcriptCountSpan = document.getElementById('transcriptCount');
-                const wordsCountSpan = document.getElementById('wordsCount');
+                const wordsCountSpan = document.getElementById('wordCount');
                 const sessionTimeSpan = document.getElementById('sessionTime');
 
                 let totalWords = 0;
@@ -3479,7 +3878,13 @@
                 window.exportToMarkdown = () => {
                     sessionManager.exportToMarkdown();
                 };
+
                 
+                // Global function to get current summary prompt (called by live_audio_recorder.js)
+                window.getCurrentSummaryPrompt = function() {
+                    return summaryPromptManager.getCurrentPrompt();
+                };
+
                 // Test function to debug language codes
                 window.testLanguageCodes = () => {
                     const langInput = document.getElementById('languageCodes');
