@@ -270,6 +270,21 @@
             transform: translateY(0);
         }
 
+        .btn-secondary {
+            background-color: var(--gray-600);
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--gray-700);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -732,6 +747,55 @@
         .browser-warning svg {
             flex-shrink: 0;
         }
+
+        .custom-class-item {
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+        }
+
+        .custom-class-header {
+            display: flex;
+            gap: var(--space-3);
+            align-items: end;
+            margin-bottom: var(--space-3);
+        }
+
+        .custom-class-name-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .custom-class-boost-group {
+            min-width: 120px;
+        }
+
+        .custom-class-remove {
+            background: var(--error-500);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: var(--space-2);
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+            min-height: 40px;
+            width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-class-remove:hover {
+            background: var(--error-600);
+        }
+
+        .custom-class-items-textarea {
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
+        }
     </style>
 </head>
 <body>
@@ -786,7 +850,172 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Advanced Recognition Documentation -->
+            <div class="control-section">
+                <h3>📚 Advanced Recognition Documentation</h3>
+                <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
+                    
+                    <h4 style="margin-top: 0; color: var(--gray-700);">🎯 Phrase Sets</h4>
+                    <p style="margin-bottom: var(--space-3); color: var(--gray-600);"><strong>Purpose:</strong> Improve recognition of specific words or phrases that are important to your use case.</p>
+                    <p style="margin-bottom: var(--space-3); color: var(--gray-600);"><strong>How it works:</strong> Each phrase gets a boost value (0-20) that increases its recognition likelihood. Higher boost = more likely to be recognized.</p>
+                    <p style="margin-bottom: var(--space-3); color: var(--gray-600);"><strong>When to use:</strong> For proper nouns, technical terms, brand names, or any words frequently misrecognized.</p>
+                    <div style="background: var(--gray-800); color: var(--gray-100); padding: var(--space-3); border-radius: var(--radius-sm); font-family: var(--font-family-mono); font-size: 0.875rem; margin-bottom: var(--space-3);">
+                        <div style="color: var(--gray-400);">// Example phrase sets with boost values:</div>
+                        <div>OpenAI:15           <span style="color: var(--gray-400);">// High boost for important brand</span></div>
+                        <div>machine learning:10  <span style="color: var(--gray-400);">// Medium boost for common term</span></div>
+                        <div>artificial intelligence:12</div>
+                        <div>Google Cloud:8</div>
+                    </div>
+                    
+
+                    <h4 style="color: var(--gray-700);">🎨 Custom Classes</h4>
+                    <p style="margin-bottom: var(--space-3); color: var(--gray-600);"><strong>Purpose:</strong> Create your own vocabulary sets for domain-specific terminology.</p>
+                    <p style="margin-bottom: var(--space-3); color: var(--gray-600);"><strong>How it works:</strong> Group related terms together (like company names) with a shared boost value. All items in the class get the same recognition boost.</p>
+                    <p style="margin-bottom: var(--space-3); color: var(--gray-600);"><strong>When to use:</strong> For categories of terms frequently mentioned together (competitors, products, locations, etc.).</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3);">
+                        <div style="background: var(--gray-800); color: var(--gray-100); padding: var(--space-3); border-radius: var(--radius-sm); font-family: var(--font-family-mono); font-size: 0.875rem;">
+                            <div style="color: var(--gray-400); margin-bottom: var(--space-2);">// Example: AI Companies Class</div>
+                            <div>OpenAI</div>
+                            <div>Anthropic</div>
+                            <div>Google</div>
+                            <div>Microsoft</div>
+                            <div>Claude</div>
+                            <div>ChatGPT</div>
+                            <div style="color: var(--gray-400); margin-top: var(--space-2); font-size: 0.8rem;">Boost: 12</div>
+                        </div>
+                        
+                        <div style="background: var(--gray-800); color: var(--gray-100); padding: var(--space-3); border-radius: var(--radius-sm); font-family: var(--font-family-mono); font-size: 0.875rem;">
+                            <div style="color: var(--gray-400); margin-bottom: var(--space-2);">// Example: Energy Companies Class</div>
+                            <div>Total</div>
+                            <div>ExxonMobil</div>
+                            <div>Shell</div>
+                            <div>BP</div>
+                            <div>Chevron</div>
+                            <div>ConocoPhillips</div>
+                            <div style="color: var(--gray-400); margin-top: var(--space-2); font-size: 0.8rem;">Boost: 10</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--gray-700);">🤔 Key Differences Explained</h4>
+                    <div style="background: white; border: 1px solid var(--primary-300); border-radius: var(--radius-sm); padding: var(--space-3); margin-bottom: var(--space-3);">
+                        <p style="margin: 0; color: var(--gray-700);"><strong>Overlap Example:</strong> "OpenAI" appears in both phrase sets AND custom classes because:</p>
+                        <ul style="margin: var(--space-2) 0 0 0; color: var(--gray-600);">
+                            <li><strong>In Phrase Sets:</strong> Gets individual boost value (e.g., 15) as a specific important term</li>
+                            <li><strong>In Custom Classes:</strong> Gets grouped with other AI companies using shared boost value (e.g., 10)</li>
+                            <li><strong>Result:</strong> Both configurations apply, giving "OpenAI" extra recognition strength</li>
+                        </ul>
+                    </div>
+
+                    <h4 style="color: var(--gray-700);">📋 Usage Guidelines</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-3);">
+                        <div style="background: var(--success-50); border: 1px solid var(--success-500); border-radius: var(--radius-sm); padding: var(--space-3);">
+                            <h5 style="margin: 0 0 var(--space-2) 0; color: var(--success-600);">✅ Use Phrase Sets For:</h5>
+                            <ul style="margin: 0; color: var(--gray-700); font-size: 0.875rem;">
+                                <li>Individual important terms</li>
+                                <li>Frequently misrecognized words</li>
+                                <li>Terms needing different boost values</li>
+                                <li>Proper nouns and brand names</li>
+                            </ul>
+                        </div>
+                        <div style="background: var(--primary-50); border: 1px solid var(--primary-500); border-radius: var(--radius-sm); padding: var(--space-3);">
+                            <h5 style="margin: 0 0 var(--space-2) 0; color: var(--primary-600);">✅ Use Custom Classes For:</h5>
+                            <ul style="margin: 0; color: var(--gray-700); font-size: 0.875rem;">
+                                <li>Groups of related terms (company names, product names)</li>
+                                <li>Industry-specific vocabulary</li>
+                                <li>Competitor names in your field</li>
+                                <li>Technical terms used together</li>
+                                <li>Location names or proper nouns</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--gray-700); margin-top: var(--space-4);">⚙️ Best Practices</h4>
+                    <ul style="color: var(--gray-600); margin-bottom: 0;">
+                        <li><strong>Boost Values:</strong> Start with 10-15 for important phrases, avoid values above 20</li>
+                        <li><strong>Phrase Length:</strong> Works best with 1-5 word phrases</li>
+                        <li><strong>Overlap Strategy:</strong> Use both phrase sets AND classes for maximum recognition of critical terms</li>
+                        <li><strong>Context Matters:</strong> Include variations and common misspellings</li>
+                        <li><strong>Test Iteratively:</strong> Start with high-impact terms and refine based on results</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Advanced Recognition Section -->
+            <div class="control-section">
+                <h3>Advanced Recognition (Phrase Sets & Classes)</h3>
+                
+                <!-- Phrase Sets Configuration -->
+                <div class="control-row" style="margin-bottom: var(--space-4);">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="phraseSets" class="form-label">Phrase Sets (one per line: phrase:boost)</label>
+                        <textarea id="phraseSets" class="form-control" rows="4" placeholder="e.g.&#10;OpenAI:15&#10;machine learning:10&#10;artificial intelligence:12" style="resize: vertical; min-height: 100px;"></textarea>
+                        <p class="form-hint">Format: "phrase:boost" (boost 0-20, higher = more likely recognition)</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="defaultBoost" class="form-label">Default Boost</label>
+                        <input type="number" id="defaultBoost" class="form-control" min="0" max="20" step="0.5" value="10" style="max-width: 100px;">
+                        <p class="form-hint">Default boost for phrases without explicit boost values</p>
+                    </div>
+                </div>
+
+                <!-- Multiple Custom Classes Configuration -->
+                <div id="customClassesContainer" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                        <label class="form-label" style="margin: 0; font-size: 1rem; font-weight: 600;">Custom Classes</label>
+                        <button type="button" id="addCustomClassBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-3); font-size: 0.875rem;">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                            Add Custom Class
+                        </button>
+                    </div>
+                    <div id="customClassesList" style="margin-bottom: var(--space-4);">
+                        <!-- Custom classes will be dynamically added here -->
+                    </div>
+                    <p class="form-hint">Create multiple custom vocabulary sets, each with their own boost values. Each class groups related terms (e.g., "AI Companies", "Energy Companies", "Medical Terms").</p>
+                </div>
+
+                <!-- Toggle Button for Custom Classes -->
+                <div style="margin-bottom: var(--space-4);">
+                    <button type="button" id="toggleCustomClassesBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-3); font-size: 0.875rem;">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                        </svg>
+                        Show Custom Classes
+                    </button>
+                </div>
+            </div>
             
+            <!-- Configuration Management Section -->
+            <div class="control-section">
+                <h3>Configuration Management</h3>
+                <div class="control-row">
+                    <div class="form-group">
+                        <label class="form-label">Export/Import Settings</label>
+                        <div style="display: flex; gap: var(--space-3);">
+                            <button type="button" id="exportConfigBtn" class="btn btn-outline">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                </svg>
+                                Export Settings
+                            </button>
+                            <label for="importConfigFile" class="btn btn-outline" style="margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2);">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                </svg>
+                                Import Settings
+                                <input type="file" id="importConfigFile" accept=".json" style="display: none;">
+                            </label>
+                        </div>
+                        <p class="form-hint">Export current language, phrase sets, and custom classes configuration to a JSON file, or import from a previously saved configuration.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Recording Controls Section -->
             <div class="control-section">
                 <h3>Recording Controls</h3>
@@ -819,11 +1048,20 @@
                         </svg>
                         Clear Transcripts
                     </button>
+                    
+                    <button id="addKeywordsBtn" class="btn btn-secondary" onclick="addTestKeywords()" disabled aria-describedby="keywords-btn-desc">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                        </svg>
+                        Add Test Keywords
+                    </button>
                 </div>
                 <div class="sr-only">
                     <div id="start-btn-desc">Begin recording and transcribing audio in real-time</div>
                     <div id="stop-btn-desc">Stop the current transcription session</div>
                     <div id="clear-btn-desc">Remove all transcripts and summaries from the interface</div>
+                    <div id="keywords-btn-desc">Add test keywords dynamically during active transcription</div>
                 </div>
             </div>
         </div>
@@ -899,6 +1137,59 @@
             document.addEventListener('DOMContentLoaded', () => {
                 recorder.populateAudioDevices();
 
+                // Set up custom classes functionality
+                const addCustomClassBtn = document.getElementById('addCustomClassBtn');
+                let customClassCounter = 0;
+
+                addCustomClassBtn.addEventListener('click', () => {
+                    createCustomClassItem();
+                });
+
+                // Set up toggle functionality for custom classes
+                const toggleCustomClassesBtn = document.getElementById('toggleCustomClassesBtn');
+                const customClassesContainer = document.getElementById('customClassesContainer');
+                let customClassesVisible = false;
+
+                toggleCustomClassesBtn.addEventListener('click', () => {
+                    customClassesVisible = !customClassesVisible;
+                    if (customClassesVisible) {
+                        customClassesContainer.style.display = 'block';
+                        toggleCustomClassesBtn.innerHTML = `
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                            </svg>
+                            Hide Custom Classes
+                        `;
+                        // Add default custom classes if container is empty
+                        if (customClassesList.children.length === 0) {
+                            addDefaultCustomClasses();
+                        }
+                    } else {
+                        customClassesContainer.style.display = 'none';
+                        toggleCustomClassesBtn.innerHTML = `
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                            </svg>
+                            Show Custom Classes
+                        `;
+                    }
+                });
+
+                // Set up export/import functionality
+                const exportConfigBtn = document.getElementById('exportConfigBtn');
+                const importConfigFile = document.getElementById('importConfigFile');
+
+                exportConfigBtn.addEventListener('click', () => {
+                    exportConfiguration();
+                });
+
+                importConfigFile.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        importConfiguration(file);
+                    }
+                });
+
                 const startBtn = document.getElementById('startBtn');
                 const stopBtn = document.getElementById('stopBtn');
                 const languageCodesInput = document.getElementById('languageCodes');
@@ -907,6 +1198,7 @@
                 const interimTranscriptOutput = document.getElementById('interimTranscriptOutput');
                 const finalTranscriptOutput = document.getElementById('finalTranscriptOutput');
                 const clearBtn = document.getElementById('clearBtn');
+                const addKeywordsBtn = document.getElementById('addKeywordsBtn');
                 const copyFinalTranscriptBtn = document.getElementById('copyFinalTranscriptBtn');
                 const copySummaryBtn = document.getElementById('copySummaryBtn');
                 const summaryOutput = document.getElementById('summaryOutput');
@@ -958,14 +1250,132 @@
                     }
                 }
 
+                function collectPhraseSetsConfig(phraseSetsText, defaultBoost) {
+                    if (!phraseSetsText.trim()) return null;
+                    
+                    const phrases = [];
+                    const lines = phraseSetsText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                    
+                    for (const line of lines) {
+                        if (line.includes(':')) {
+                            const [phrase, boostStr] = line.split(':').map(part => part.trim());
+                            const boost = parseFloat(boostStr);
+                            if (phrase && !isNaN(boost) && boost >= 0 && boost <= 20) {
+                                phrases.push({ value: phrase, boost: boost });
+                            }
+                        } else if (line) {
+                            // Use default boost if no explicit boost provided
+                            phrases.push({ value: line, boost: defaultBoost });
+                        }
+                    }
+                    
+                    return phrases.length > 0 ? { phrases: phrases } : null;
+                }
+
+                function collectClassesConfig() {
+                    const config = {};
+                    const customClasses = [];
+                    
+                    // Collect multiple custom classes
+                    const customClassItems = document.querySelectorAll('.custom-class-item');
+                    customClassItems.forEach(item => {
+                        const nameInput = item.querySelector('.custom-class-name');
+                        const itemsTextarea = item.querySelector('.custom-class-items-textarea');
+                        const boostInput = item.querySelector('.custom-class-boost');
+                        
+                        const name = nameInput?.value.trim();
+                        const itemsText = itemsTextarea?.value.trim();
+                        const boost = parseFloat(boostInput?.value || '10');
+                        
+                        if (name && itemsText) {
+                            const items = itemsText.split('\n')
+                                .map(item => item.trim())
+                                .filter(item => item.length > 0);
+                            
+                            if (items.length > 0) {
+                                customClasses.push({
+                                    name: name,
+                                    items: items,
+                                    boost: boost
+                                });
+                            }
+                        }
+                    });
+                    
+                    if (customClasses.length > 0) {
+                        config.customClasses = customClasses;
+                        return config;
+                    }
+                    
+                    return null;
+                }
+
+                function createCustomClassItem(name = '', items = '', boost = 12) {
+                    customClassCounter++;
+                    const id = `customClass${customClassCounter}`;
+                    
+                    const customClassHtml = `
+                        <div class="custom-class-item" data-id="${id}">
+                            <div class="custom-class-header">
+                                <div class="form-group custom-class-name-group">
+                                    <label class="form-label">Class Name</label>
+                                    <input type="text" class="form-control custom-class-name" placeholder="e.g., AI Companies" value="${name}">
+                                </div>
+                                <div class="form-group custom-class-boost-group">
+                                    <label class="form-label">Boost</label>
+                                    <input type="number" class="form-control custom-class-boost" min="0" max="20" step="0.5" value="${boost}">
+                                </div>
+                                <button type="button" class="custom-class-remove" title="Remove this custom class">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Items (one per line)</label>
+                                <textarea class="form-control custom-class-items-textarea" placeholder="OpenAI&#10;Anthropic&#10;Google&#10;Microsoft&#10;Claude&#10;ChatGPT">${items}</textarea>
+                                <p class="form-hint">Enter vocabulary items for this class, one per line</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const customClassesList = document.getElementById('customClassesList');
+                    customClassesList.insertAdjacentHTML('beforeend', customClassHtml);
+                    
+                    // Add event listener for remove button
+                    const newItem = customClassesList.querySelector(`[data-id="${id}"]`);
+                    const removeBtn = newItem.querySelector('.custom-class-remove');
+                    removeBtn.addEventListener('click', () => {
+                        newItem.remove();
+                    });
+                }
+
+                function addDefaultCustomClasses() {
+                    // Add default examples to help users understand the feature
+                    createCustomClassItem('AI Companies', 'OpenAI\nAnthropic\nGoogle\nMicrosoft\nClaude\nChatGPT', 12);
+                    createCustomClassItem('Energy Companies', 'Total\nExxonMobil\nShell\nBP\nChevron\nConocoPhillips', 10);
+                }
+
                 startBtn.addEventListener('click', async () => {
                     try {
                         const wsUrl = 'ws://localhost:8080/ws'; // Default WebSocket URL
                         const languageCodes = languageCodesInput.value.split(',').map(code => code.trim()).filter(code => code.length > 0);
-                        await recorder.startRecording(wsUrl, languageCodes);
+                        const customWords = [];
+                        
+                        // Collect phrase sets configuration
+                        const phraseSetsTextarea = document.getElementById('phraseSets');
+                        const defaultBoostInput = document.getElementById('defaultBoost');
+                        const phraseSetsConfig = collectPhraseSetsConfig(phraseSetsTextarea.value, parseFloat(defaultBoostInput.value));
+                        
+                        // Collect classes configuration
+                        const classesConfig = collectClassesConfig();
+                        
+                        await recorder.startRecording(wsUrl, languageCodes, customWords, phraseSetsConfig, classesConfig);
                         startBtn.disabled = true;
                         stopBtn.disabled = false;
                         clearBtn.disabled = false;
+                        addKeywordsBtn.disabled = false;
                         recordingStatusDiv.classList.remove('hidden');
                         audioVisualizerDiv.classList.remove('hidden');
                         statsContainer.style.display = 'flex';
@@ -976,6 +1386,7 @@
                         startBtn.disabled = false;
                         stopBtn.disabled = true;
                         clearBtn.disabled = true;
+                        addKeywordsBtn.disabled = true;
                         recordingStatusDiv.classList.add('hidden');
                         audioVisualizerDiv.classList.add('hidden');
                         statsContainer.style.display = 'none';
@@ -987,6 +1398,7 @@
                     recorder.stopRecording();
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
+                    addKeywordsBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
@@ -1001,6 +1413,27 @@
                     copyFinalTranscriptBtn.disabled = true;
                     copySummaryBtn.disabled = true;
                     resetStats();
+                    
+                    // Clear phrase sets
+                    const phraseSetsTextarea = document.getElementById('phraseSets');
+                    if (phraseSetsTextarea) phraseSetsTextarea.value = '';
+                    
+                    // Clear and reset custom classes
+                    const customClassesList = document.getElementById('customClassesList');
+                    if (customClassesList) {
+                        customClassesList.innerHTML = '';
+                        customClassCounter = 0;
+                        // Don't add default classes, keep it empty
+                    }
+                    // Hide custom classes section
+                    customClassesContainer.style.display = 'none';
+                    customClassesVisible = false;
+                    toggleCustomClassesBtn.innerHTML = `
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                        </svg>
+                        Show Custom Classes
+                    `;
                 });
 
                 document.addEventListener('transcription', (event) => {
@@ -1060,6 +1493,7 @@
                     alert('Recorder error: ' + event.detail.message);
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
+                    addKeywordsBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
@@ -1069,6 +1503,7 @@
                     console.log('Recorder closed:', event.detail.reason);
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
+                    addKeywordsBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
@@ -1082,6 +1517,7 @@
                         console.log('🔄 Speech recognition stream was recreated for continued transcription');
                     }
                 });
+
 
                 window.copyFinalTranscriptToClipboard = () => {
                     finalTranscriptOutput.select();
@@ -1107,6 +1543,140 @@
                         alert('No summary available to copy');
                     }
                 };
+
+                // Function to add test keywords dynamically during recording
+                window.addTestKeywords = () => {
+                    if (!recorder || !recorder.socket || recorder.socket.readyState !== WebSocket.OPEN) {
+                        alert('WebSocket is not connected. Start transcription first.');
+                        return;
+                    }
+
+                    // Prompt user for keywords or use predefined test keywords
+                    const userInput = prompt('Enter keywords separated by commas (or leave empty for test keywords):', '');
+                    
+                    let keywordsToAdd;
+                    if (userInput === null) {
+                        // User cancelled
+                        return;
+                    } else if (userInput.trim() === '') {
+                        // Use predefined test keywords
+                        keywordsToAdd = ['artificial intelligence', 'machine learning', 'neural networks', 'deep learning', 'computer vision'];
+                    } else {
+                        // Use user-provided keywords
+                        keywordsToAdd = userInput.split(',').map(k => k.trim()).filter(k => k.length > 0);
+                    }
+
+                    if (keywordsToAdd.length === 0) {
+                        alert('No valid keywords to add.');
+                        return;
+                    }
+
+                    // Send keywords message to backend
+                    const keywordsMessage = {
+                        type: 'keywords',
+                        words: keywordsToAdd,
+                        timestamp: new Date()
+                    };
+
+                    console.log('📤 Sending dynamic keywords:', keywordsMessage);
+                    recorder.socket.send(JSON.stringify(keywordsMessage));
+                    
+                    alert(`Added ${keywordsToAdd.length} keywords: ${keywordsToAdd.join(', ')}`);
+                };
+
+                function exportConfiguration() {
+                    const config = {
+                        language: languageCodesInput.value,
+                        phraseSets: document.getElementById('phraseSets').value,
+                        defaultBoost: parseFloat(document.getElementById('defaultBoost').value),
+                        customClasses: []
+                    };
+
+                    // Collect custom classes
+                    const customClassItems = document.querySelectorAll('.custom-class-item');
+                    customClassItems.forEach(item => {
+                        const nameInput = item.querySelector('.custom-class-name');
+                        const itemsTextarea = item.querySelector('.custom-class-items-textarea');
+                        const boostInput = item.querySelector('.custom-class-boost');
+                        
+                        const name = nameInput?.value.trim();
+                        const itemsText = itemsTextarea?.value.trim();
+                        const boost = parseFloat(boostInput?.value || '10');
+                        
+                        if (name && itemsText) {
+                            config.customClasses.push({
+                                name: name,
+                                items: itemsText,
+                                boost: boost
+                            });
+                        }
+                    });
+
+                    // Create and download the file
+                    const dataStr = JSON.stringify(config, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `transcription-config-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    alert('Configuration exported successfully!');
+                }
+
+                function importConfiguration(file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const config = JSON.parse(e.target.result);
+                            
+                            // Restore language codes
+                            if (config.language) {
+                                languageCodesInput.value = config.language;
+                            }
+                            
+                            // Restore phrase sets
+                            if (config.phraseSets !== undefined) {
+                                document.getElementById('phraseSets').value = config.phraseSets;
+                            }
+                            
+                            // Restore default boost
+                            if (config.defaultBoost !== undefined) {
+                                document.getElementById('defaultBoost').value = config.defaultBoost;
+                            }
+                            
+                            // Clear existing custom classes
+                            const customClassesList = document.getElementById('customClassesList');
+                            customClassesList.innerHTML = '';
+                            customClassCounter = 0;
+                            
+                            // Restore custom classes
+                            if (config.customClasses && config.customClasses.length > 0) {
+                                config.customClasses.forEach(classConfig => {
+                                    createCustomClassItem(classConfig.name, classConfig.items, classConfig.boost);
+                                });
+                                // Show custom classes section if there are imported classes
+                                customClassesContainer.style.display = 'block';
+                                customClassesVisible = true;
+                                toggleCustomClassesBtn.innerHTML = `
+                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                                    </svg>
+                                    Hide Custom Classes
+                                `;
+                            }
+                            
+                            alert('Configuration imported successfully!');
+                        } catch (error) {
+                            console.error('Error importing configuration:', error);
+                            alert('Error importing configuration: Invalid JSON file');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
             });
         </script>
     </body>
