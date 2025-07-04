@@ -1476,6 +1476,9 @@ func serveStaticFiles(w http.ResponseWriter, r *http.Request) {
 	case "/live_audio_recorder.js":
 		w.Header().Set("Content-Type", "application/javascript")
 		http.ServeFile(w, r, "live_audio_recorder.js")
+	case "/audio-processor.js":
+		w.Header().Set("Content-Type", "application/javascript")
+		http.ServeFile(w, r, "audio-processor.js")
 	case "/favicon.ico":
 		w.Header().Set("Content-Type", "image/png")
 		http.ServeFile(w, r, "favicon.png")

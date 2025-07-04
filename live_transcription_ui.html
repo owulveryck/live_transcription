@@ -2523,7 +2523,6 @@
         
         <!-- Marked.js for markdown rendering -->
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="live_audio_recorder.js"></script>
         <script>
             // Toast Notification System - Define early for global access
             function showToast(message, type = 'info', duration = 3000) {
@@ -3450,15 +3449,19 @@ Update previous interview notes while maintaining consistency in evaluation crit
             });
         </script>
         
+        <!-- Load audio recorder before using it -->
+        <script src="live_audio_recorder.js"></script>
+        
         <script>
-            const recorder = new LiveAudioRecorder();
-
             // Global variables for state management
             let customClassCounter = 0;
             let customClassesVisible = false;
             let advancedConfigVisible = false;
+            let recorder; // Declare recorder variable
 
             document.addEventListener('DOMContentLoaded', () => {
+                // Initialize recorder after DOM and scripts are loaded
+                recorder = new LiveAudioRecorder();
                 recorder.populateAudioDevices();
 
                 // Advanced configuration is now in its own tab, no need for toggle
