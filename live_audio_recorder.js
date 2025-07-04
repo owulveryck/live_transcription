@@ -196,7 +196,7 @@
         }
 
         // Start recording audio stream for Google Cloud Speech-to-Text live transcription
-        async startRecording(wsUrl = null, languageCodes = []) {
+        async startRecording(wsUrl = null, languageCodes = [], customWords = [], phraseSetsConfig = null, classesConfig = null) {
             this.configSent = false; // Flag to ensure config is sent first
             if (this.isRecording) {
                 console.warn('Recording already in progress');
@@ -218,7 +218,7 @@
 
                 // Set up WebSocket connection
                 if (wsUrl) {
-                    this._setupWebSocket(wsUrl, languageCodes);
+                    this._setupWebSocket(wsUrl, languageCodes, customWords, phraseSetsConfig, classesConfig);
                 } else {
                     this.startAudioProcessing(audioStream);
                 }
@@ -390,11 +390,11 @@
             this.visualizerTimer = setInterval(() => this.updateVisualizer(), 100);
         }
 
-        _setupWebSocket(wsUrl, languageCodes) {
+        _setupWebSocket(wsUrl, languageCodes, customWords, phraseSetsConfig, classesConfig) {
             this.socket = new WebSocket(wsUrl);
             this.socket.binaryType = "arraybuffer";
 
-            this.socket.onopen = () => this._onWebSocketOpen(languageCodes);
+            this.socket.onopen = () => this._onWebSocketOpen(languageCodes, customWords, phraseSetsConfig, classesConfig);
             this.socket.onmessage = this._onWebSocketMessage.bind(this);
             this.socket.onerror = this._onWebSocketError.bind(this);
             this.socket.onclose = this._onWebSocketClose.bind(this);
@@ -500,7 +500,7 @@
             this.socket.send(pcmData16.buffer);
         }
 
-        _onWebSocketOpen(languageCodes) {
+        _onWebSocketOpen(languageCodes, customWords = [], phraseSetsConfig = null, classesConfig = null) {
             console.log("🔗 WebSocket connection established for Google Cloud Speech-to-Text live streaming");
             
             const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
@@ -514,7 +514,10 @@
                     channels: 1
                 },
                 languageCode: languageCodes.length > 0 ? languageCodes[0] : "en-US",
-                alternativeLanguageCodes: languageCodes.slice(1)
+                alternativeLanguageCodes: languageCodes.slice(1),
+                customWords: customWords || [],
+                phraseSets: phraseSetsConfig,
+                classes: classesConfig
             };
             console.log("📤 Sending config message:", configMessage);
             this.socket.send(JSON.stringify(configMessage));

@@ -24,12 +24,49 @@ type AudioFormat struct {
 	Channels   int    `json:"channels"`
 }
 
+// PhraseSetConfig represents phrase sets configuration from the client
+type PhraseSetConfig struct {
+	Phrases []PhraseItem `json:"phrases"`
+}
+
+// PhraseItem represents a phrase with boost value
+type PhraseItem struct {
+	Value string  `json:"value"`
+	Boost float32 `json:"boost"`
+}
+
+// CustomClass represents a single custom class with its items and boost
+type CustomClass struct {
+	Name  string   `json:"name"`
+	Items []string `json:"items"`
+	Boost float32  `json:"boost"`
+}
+
+// ClassesConfig represents classes configuration from the client
+type ClassesConfig struct {
+	PredefinedClasses []string      `json:"predefinedClasses"`
+	CustomClasses     []CustomClass `json:"customClasses"`
+	// Legacy support for single custom class
+	CustomClassItems  []string  `json:"customClassItems,omitempty"`
+	Boost             float32   `json:"boost,omitempty"`
+}
+
 // ConfigMessage represents the initial configuration sent from the client
 type ConfigMessage struct {
-	Type                     string      `json:"type"`
-	AudioFormat              AudioFormat `json:"audioFormat"`
-	LanguageCode             string      `json:"languageCode"`
-	AlternativeLanguageCodes []string    `json:"alternativeLanguageCodes"`
+	Type                     string           `json:"type"`
+	AudioFormat              AudioFormat      `json:"audioFormat"`
+	LanguageCode             string           `json:"languageCode"`
+	AlternativeLanguageCodes []string         `json:"alternativeLanguageCodes"`
+	CustomWords              []string         `json:"customWords"`
+	PhraseSets               *PhraseSetConfig `json:"phraseSets"`
+	Classes                  *ClassesConfig   `json:"classes"`
+}
+
+// KeywordsMessage represents keywords sent from the client during an active session
+type KeywordsMessage struct {
+	Type      string    `json:"type"`
+	Words     []string  `json:"words"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // TranscriptionResponse represents the transcription response sent back to the client
@@ -64,6 +101,11 @@ var upgrader = websocket.Upgrader{
 
 // Global logger
 var logger *slog.Logger
+
+// Global variables for dynamic keyword management
+var keywordsMu sync.Mutex
+var currentSpeechContexts []*speechpb.SpeechContext
+var dynamicKeywords []string
 
 // initLogger initializes the structured logger based on configuration
 func initLogger() {
@@ -105,8 +147,354 @@ func initLogger() {
 	slog.SetDefault(logger)
 }
 
-// generateSummary uses Google GenAI to generate content based on the provided transcript, previous summary, and prompt
-func generateSummary(ctx context.Context, projectID, location, fullTranscript, previousSummary, prompt string) (string, error) {
+// createSpeechContexts creates speech contexts with custom words/phrases for enhanced recognition
+func createSpeechContexts(customWords []string) []*speechpb.SpeechContext {
+	if len(customWords) == 0 {
+		return nil
+	}
+
+	// Create phrases from custom words
+	var phrases []string
+	for _, word := range customWords {
+		if strings.TrimSpace(word) != "" {
+			phrases = append(phrases, strings.TrimSpace(word))
+		}
+	}
+
+	if len(phrases) == 0 {
+		return nil
+	}
+
+	logger.Debug("Creating SpeechContext", 
+		"phrasesCount", len(phrases),
+		"customWords", customWords)
+
+	// Create a speech context with the custom phrases
+	speechContext := &speechpb.SpeechContext{
+		Phrases: phrases,
+		Boost:   10.0, // Boost recognition confidence for these phrases
+	}
+
+	logger.Info("SpeechContext created successfully", "phrasesCount", len(phrases))
+
+	return []*speechpb.SpeechContext{speechContext}
+}
+
+// createDynamicSpeechContexts creates updated speech contexts by combining original contexts with new dynamic keywords
+func createDynamicSpeechContexts(originalContexts []*speechpb.SpeechContext, newKeywords []string) []*speechpb.SpeechContext {
+	if len(newKeywords) == 0 {
+		logger.Debug("No new keywords provided, returning original contexts")
+		return originalContexts
+	}
+
+	logger.Info("Creating dynamic SpeechContexts",
+		"originalContextsCount", len(originalContexts),
+		"newKeywordsCount", len(newKeywords),
+		"newKeywords", newKeywords)
+
+	// Create a copy of original contexts
+	updatedContexts := make([]*speechpb.SpeechContext, len(originalContexts))
+	copy(updatedContexts, originalContexts)
+
+	// Filter and prepare new keywords
+	var validKeywords []string
+	for i, keyword := range newKeywords {
+		trimmedKeyword := strings.TrimSpace(keyword)
+		logger.Debug("Processing dynamic keyword",
+			"index", i+1,
+			"originalKeyword", keyword,
+			"trimmedKeyword", trimmedKeyword,
+			"isEmpty", trimmedKeyword == "")
+
+		if trimmedKeyword != "" {
+			validKeywords = append(validKeywords, trimmedKeyword)
+			logger.Debug("Dynamic keyword accepted",
+				"validIndex", len(validKeywords),
+				"keyword", trimmedKeyword)
+		}
+	}
+
+	// Add new keywords as a separate speech context if we have valid ones
+	if len(validKeywords) > 0 {
+		dynamicContext := &speechpb.SpeechContext{
+			Phrases: validKeywords,
+			Boost:   15.0, // Higher boost for dynamic keywords to prioritize them
+		}
+		updatedContexts = append(updatedContexts, dynamicContext)
+
+		logger.Info("Dynamic SpeechContext created",
+			"validKeywordsCount", len(validKeywords),
+			"boost", 15.0,
+			"totalContextsAfterUpdate", len(updatedContexts))
+	}
+
+	logger.Info("Dynamic SpeechContexts creation completed",
+		"finalContextsCount", len(updatedContexts),
+		"addedDynamicContext", len(validKeywords) > 0)
+
+	return updatedContexts
+}
+
+// createAdvancedSpeechContexts creates advanced speech contexts with phrase sets and classes
+func createAdvancedSpeechContexts(customWords []string, phraseSetsConfig *PhraseSetConfig, classesConfig *ClassesConfig) []*speechpb.SpeechContext {
+	var speechContexts []*speechpb.SpeechContext
+
+	// Handle custom words (legacy support)
+	if len(customWords) > 0 {
+		contexts := createSpeechContexts(customWords)
+		speechContexts = append(speechContexts, contexts...)
+	}
+
+	// Handle phrase sets configuration
+	if phraseSetsConfig != nil && len(phraseSetsConfig.Phrases) > 0 {
+		logger.Info("Processing phrase sets configuration",
+			"totalPhraseItems", len(phraseSetsConfig.Phrases))
+
+		var phrases []string
+		var totalBoostSum float32
+		var validPhraseCount int
+
+		for i, phraseItem := range phraseSetsConfig.Phrases {
+			trimmedPhrase := strings.TrimSpace(phraseItem.Value)
+			logger.Debug("Processing phrase set item",
+				"index", i+1,
+				"originalPhrase", phraseItem.Value,
+				"trimmedPhrase", trimmedPhrase,
+				"boost", phraseItem.Boost,
+				"isEmpty", trimmedPhrase == "")
+
+			if trimmedPhrase != "" {
+				phrases = append(phrases, trimmedPhrase)
+				totalBoostSum += phraseItem.Boost
+				validPhraseCount++
+				logger.Debug("Phrase set item accepted",
+					"validIndex", validPhraseCount,
+					"phrase", trimmedPhrase,
+					"boost", phraseItem.Boost)
+			} else {
+				logger.Debug("Phrase set item skipped (empty after trim)",
+					"index", i+1,
+					"originalValue", phraseItem.Value)
+			}
+		}
+
+		if len(phrases) > 0 {
+			averageBoost := totalBoostSum / float32(validPhraseCount)
+			logger.Info("Creating SpeechContext from phrase sets",
+				"validPhrasesCount", len(phrases),
+				"skippedPhrasesCount", len(phraseSetsConfig.Phrases)-validPhraseCount,
+				"averageBoost", averageBoost,
+				"usingDefaultBoost", 10.0)
+
+			speechContext := &speechpb.SpeechContext{
+				Phrases: phrases,
+				Boost:   10.0, // Default boost for phrase sets
+			}
+			speechContexts = append(speechContexts, speechContext)
+			logger.Info("PhraseSet SpeechContext created successfully",
+				"phrasesCount", len(phrases),
+				"phrases", phrases,
+				"boost", 10.0)
+		} else {
+			logger.Warn("No valid phrases found in phrase sets configuration",
+				"totalItems", len(phraseSetsConfig.Phrases),
+				"allItemsEmpty", true)
+		}
+	} else {
+		logger.Debug("No phrase sets configuration provided or phrase sets is empty")
+	}
+
+	// Handle classes configuration
+	if classesConfig != nil {
+		var classHints []string
+
+		// Add predefined classes
+		for _, class := range classesConfig.PredefinedClasses {
+			if strings.TrimSpace(class) != "" {
+				classHints = append(classHints, strings.TrimSpace(class))
+			}
+		}
+
+		// Handle multiple custom classes (new format)
+		if len(classesConfig.CustomClasses) > 0 {
+			logger.Info("Processing custom classes configuration",
+				"totalCustomClasses", len(classesConfig.CustomClasses))
+
+			for classIndex, customClass := range classesConfig.CustomClasses {
+				logger.Info("Processing custom class",
+					"classIndex", classIndex+1,
+					"className", customClass.Name,
+					"totalItems", len(customClass.Items),
+					"boost", customClass.Boost)
+
+				var customClassPhrases []string
+				for itemIndex, item := range customClass.Items {
+					trimmedItem := strings.TrimSpace(item)
+					logger.Debug("Processing custom class item",
+						"classIndex", classIndex+1,
+						"className", customClass.Name,
+						"itemIndex", itemIndex+1,
+						"originalItem", item,
+						"trimmedItem", trimmedItem,
+						"isEmpty", trimmedItem == "")
+
+					if trimmedItem != "" {
+						customClassPhrases = append(customClassPhrases, trimmedItem)
+						logger.Debug("Custom class item accepted",
+							"className", customClass.Name,
+							"validItemIndex", len(customClassPhrases),
+							"item", trimmedItem)
+					} else {
+						logger.Debug("Custom class item skipped (empty after trim)",
+							"className", customClass.Name,
+							"itemIndex", itemIndex+1,
+							"originalValue", item)
+					}
+				}
+
+				if len(customClassPhrases) > 0 {
+					logger.Info("Creating SpeechContext from custom class",
+						"className", customClass.Name,
+						"validItemsCount", len(customClassPhrases),
+						"skippedItemsCount", len(customClass.Items)-len(customClassPhrases),
+						"boost", customClass.Boost,
+						"items", customClassPhrases)
+
+					speechContext := &speechpb.SpeechContext{
+						Phrases: customClassPhrases,
+						Boost:   customClass.Boost,
+					}
+					speechContexts = append(speechContexts, speechContext)
+					logger.Info("Custom class SpeechContext created successfully",
+						"className", customClass.Name,
+						"itemsCount", len(customClassPhrases),
+						"boost", customClass.Boost,
+						"speechContextIndex", len(speechContexts))
+				} else {
+					logger.Warn("Custom class has no valid items, skipping SpeechContext creation",
+						"className", customClass.Name,
+						"totalItems", len(customClass.Items),
+						"allItemsEmpty", true)
+				}
+			}
+		} else if len(classesConfig.CustomClassItems) > 0 {
+			// Legacy support for single custom class
+			logger.Info("Processing legacy custom class items",
+				"totalItems", len(classesConfig.CustomClassItems),
+				"boost", classesConfig.Boost)
+
+			var customClassPhrases []string
+			for itemIndex, item := range classesConfig.CustomClassItems {
+				trimmedItem := strings.TrimSpace(item)
+				logger.Debug("Processing legacy custom class item",
+					"itemIndex", itemIndex+1,
+					"originalItem", item,
+					"trimmedItem", trimmedItem,
+					"isEmpty", trimmedItem == "")
+
+				if trimmedItem != "" {
+					customClassPhrases = append(customClassPhrases, trimmedItem)
+					logger.Debug("Legacy custom class item accepted",
+						"validItemIndex", len(customClassPhrases),
+						"item", trimmedItem)
+				} else {
+					logger.Debug("Legacy custom class item skipped (empty after trim)",
+						"itemIndex", itemIndex+1,
+						"originalValue", item)
+				}
+			}
+
+			if len(customClassPhrases) > 0 {
+				logger.Info("Creating SpeechContext from legacy custom class items",
+					"validItemsCount", len(customClassPhrases),
+					"skippedItemsCount", len(classesConfig.CustomClassItems)-len(customClassPhrases),
+					"boost", classesConfig.Boost,
+					"items", customClassPhrases)
+
+				speechContext := &speechpb.SpeechContext{
+					Phrases: customClassPhrases,
+					Boost:   classesConfig.Boost,
+				}
+				speechContexts = append(speechContexts, speechContext)
+				logger.Info("Legacy custom class SpeechContext created successfully",
+					"itemsCount", len(customClassPhrases),
+					"boost", classesConfig.Boost,
+					"speechContextIndex", len(speechContexts))
+			} else {
+				logger.Warn("Legacy custom class has no valid items, skipping SpeechContext creation",
+					"totalItems", len(classesConfig.CustomClassItems),
+					"allItemsEmpty", true)
+			}
+		} else {
+			logger.Debug("No custom class items (legacy or new format) provided")
+		}
+
+		// Add predefined classes as phrases with boost (use first custom class boost or legacy boost)
+		if len(classHints) > 0 {
+			defaultBoost := classesConfig.Boost
+			if len(classesConfig.CustomClasses) > 0 {
+				defaultBoost = classesConfig.CustomClasses[0].Boost
+				logger.Debug("Using boost from first custom class for predefined classes",
+					"firstCustomClassName", classesConfig.CustomClasses[0].Name,
+					"boost", defaultBoost)
+			} else {
+				logger.Debug("Using legacy boost for predefined classes",
+					"boost", defaultBoost)
+			}
+
+			logger.Info("Creating SpeechContext from predefined classes",
+				"classesCount", len(classHints),
+				"boost", defaultBoost,
+				"classes", classHints)
+
+			speechContext := &speechpb.SpeechContext{
+				Phrases: classHints,
+				Boost:   defaultBoost,
+			}
+			speechContexts = append(speechContexts, speechContext)
+			logger.Info("Predefined classes SpeechContext created successfully",
+				"classesCount", len(classHints),
+				"boost", defaultBoost,
+				"speechContextIndex", len(speechContexts))
+		} else {
+			logger.Debug("No predefined classes to process")
+		}
+	}
+
+	// Log final summary of speech contexts creation
+	if len(speechContexts) > 0 {
+		logger.Info("Advanced SpeechContexts creation completed",
+			"totalContexts", len(speechContexts),
+			"hasCustomWords", len(customWords) > 0,
+			"hasPhraseSets", phraseSetsConfig != nil,
+			"hasClasses", classesConfig != nil)
+
+		// Log each context summary
+		for i, context := range speechContexts {
+			logger.Debug("SpeechContext summary",
+				"contextIndex", i+1,
+				"phrasesCount", len(context.Phrases),
+				"boost", context.Boost,
+				"firstFewPhrases", func() []string {
+					if len(context.Phrases) <= 3 {
+						return context.Phrases
+					}
+					return context.Phrases[:3]
+				}())
+		}
+	} else {
+		logger.Info("No SpeechContexts created",
+			"customWordsProvided", len(customWords) > 0,
+			"phraseSetsProvided", phraseSetsConfig != nil,
+			"classesProvided", classesConfig != nil,
+			"reason", "All configurations were empty or invalid")
+	}
+
+	return speechContexts
+}
+
+// generateSummary uses Google GenAI to generate content based on the provided transcript, previous summary, prompt, and custom words
+func generateSummary(ctx context.Context, projectID, location, fullTranscript, previousSummary, prompt string, customWords []string) (string, error) {
 	if fullTranscript == "" {
 		return "", nil
 	}
@@ -120,12 +508,17 @@ func generateSummary(ctx context.Context, projectID, location, fullTranscript, p
 		return "", fmt.Errorf("error creating GenAI client: %v", err)
 	}
 
-	// Build the full prompt with transcript and previous summary
+	// Build the full prompt with transcript, previous summary, and custom words
 	var fullPrompt string
+	customWordsText := ""
+	if len(customWords) > 0 {
+		customWordsText = fmt.Sprintf("\n\n--- IMPORTANT TERMS/PHRASES ---\nPay special attention to these key terms that appeared in the conversation: %s", strings.Join(customWords, ", "))
+	}
+
 	if previousSummary != "" {
-		fullPrompt = fmt.Sprintf("%s\n\n--- PREVIOUS SUMMARY ---\n%s\n\n--- FULL TRANSCRIPT ---\n%s", prompt, previousSummary, fullTranscript)
+		fullPrompt = fmt.Sprintf("%s%s\n\n--- PREVIOUS SUMMARY ---\n%s\n\n--- FULL TRANSCRIPT ---\n%s", prompt, customWordsText, previousSummary, fullTranscript)
 	} else {
-		fullPrompt = fmt.Sprintf("%s\n\n--- FULL TRANSCRIPT ---\n%s", prompt, fullTranscript)
+		fullPrompt = fmt.Sprintf("%s%s\n\n--- FULL TRANSCRIPT ---\n%s", prompt, customWordsText, fullTranscript)
 	}
 
 	parts := []*genai.Part{
@@ -176,10 +569,96 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log detailed configuration information
 	logger.Info("Received configuration",
 		"audioFormat", config.AudioFormat,
 		"languageCode", config.LanguageCode,
-		"alternativeLanguageCodes", config.AlternativeLanguageCodes)
+		"alternativeLanguageCodes", config.AlternativeLanguageCodes,
+		"customWordsCount", len(config.CustomWords),
+		"hasPhraseSetsConfig", config.PhraseSets != nil,
+		"hasClassesConfig", config.Classes != nil)
+
+	// Log custom words if present
+	if len(config.CustomWords) > 0 {
+		logger.Info("Custom words configuration received",
+			"words", config.CustomWords,
+			"count", len(config.CustomWords))
+		for i, word := range config.CustomWords {
+			logger.Debug("Custom word detail",
+				"index", i+1,
+				"word", word,
+				"length", len(word))
+		}
+	}
+
+	// Log phrase sets configuration if present
+	if config.PhraseSets != nil {
+		logger.Info("Phrase sets configuration received",
+			"phrasesCount", len(config.PhraseSets.Phrases))
+		for i, phrase := range config.PhraseSets.Phrases {
+			logger.Info("Phrase set item",
+				"index", i+1,
+				"phrase", phrase.Value,
+				"boost", phrase.Boost,
+				"phraseLength", len(phrase.Value))
+		}
+	} else {
+		logger.Debug("No phrase sets configuration provided")
+	}
+
+	// Log classes configuration if present
+	if config.Classes != nil {
+		logger.Info("Classes configuration received",
+			"predefinedClassesCount", len(config.Classes.PredefinedClasses),
+			"customClassesCount", len(config.Classes.CustomClasses),
+			"hasLegacyCustomClassItems", len(config.Classes.CustomClassItems) > 0,
+			"legacyBoost", config.Classes.Boost)
+
+		// Log predefined classes
+		if len(config.Classes.PredefinedClasses) > 0 {
+			logger.Info("Predefined classes",
+				"classes", config.Classes.PredefinedClasses)
+			for i, class := range config.Classes.PredefinedClasses {
+				logger.Debug("Predefined class detail",
+					"index", i+1,
+					"class", class)
+			}
+		}
+
+		// Log custom classes (new format)
+		if len(config.Classes.CustomClasses) > 0 {
+			for i, customClass := range config.Classes.CustomClasses {
+				logger.Info("Custom class configuration",
+					"classIndex", i+1,
+					"className", customClass.Name,
+					"itemsCount", len(customClass.Items),
+					"boost", customClass.Boost)
+				for j, item := range customClass.Items {
+					logger.Debug("Custom class item detail",
+						"classIndex", i+1,
+						"className", customClass.Name,
+						"itemIndex", j+1,
+						"item", item,
+						"itemLength", len(item))
+				}
+			}
+		}
+
+		// Log legacy custom class items
+		if len(config.Classes.CustomClassItems) > 0 {
+			logger.Info("Legacy custom class items received",
+				"itemsCount", len(config.Classes.CustomClassItems),
+				"boost", config.Classes.Boost)
+			for i, item := range config.Classes.CustomClassItems {
+				logger.Debug("Legacy custom class item detail",
+					"index", i+1,
+					"item", item,
+					"itemLength", len(item))
+			}
+		}
+	} else {
+		logger.Debug("No classes configuration provided")
+	}
 
 	// Debug: Log the exact format string received
 	logger.Debug("Exact audio format received", "format", config.AudioFormat.Format)
@@ -205,6 +684,21 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer client.Close()
+
+	// Create speech contexts using the new advanced configuration
+	var speechContexts []*speechpb.SpeechContext
+	speechContexts = createAdvancedSpeechContexts(config.CustomWords, config.PhraseSets, config.Classes)
+	if speechContexts != nil && len(speechContexts) > 0 {
+		logger.Info("Using advanced SpeechContexts for enhanced recognition", "totalContexts", len(speechContexts))
+	}
+	
+	// Store initial speech contexts and keywords for dynamic updates
+	keywordsMu.Lock()
+	currentSpeechContexts = make([]*speechpb.SpeechContext, len(speechContexts))
+	copy(currentSpeechContexts, speechContexts)
+	dynamicKeywords = make([]string, len(config.CustomWords))
+	copy(dynamicKeywords, config.CustomWords)
+	keywordsMu.Unlock()
 
 	// Set default language codes if none are provided by the client
 	primaryLanguage := config.LanguageCode
@@ -254,19 +748,45 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Configure the streaming recognition request template
-	reqTemplate := speechpb.StreamingRecognizeRequest{
-		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
-			StreamingConfig: &speechpb.StreamingRecognitionConfig{
-				Config: &speechpb.RecognitionConfig{
-					Encoding:                 encoding,
-					SampleRateHertz:          int32(config.AudioFormat.SampleRate),
-					LanguageCode:             primaryLanguage,
-					AlternativeLanguageCodes: alternativeLanguages,
-				},
-				InterimResults: true,
-			},
-		},
+	recognitionConfig := &speechpb.RecognitionConfig{
+		Encoding:                 encoding,
+		SampleRateHertz:          int32(config.AudioFormat.SampleRate),
+		LanguageCode:             primaryLanguage,
+		AlternativeLanguageCodes: alternativeLanguages,
 	}
+
+	// Add speech contexts if available
+	if speechContexts != nil && len(speechContexts) > 0 {
+		recognitionConfig.SpeechContexts = speechContexts
+		logger.Info("Applied SpeechContexts to recognition configuration",
+			"contextsCount", len(speechContexts),
+			"encoding", encoding,
+			"sampleRate", config.AudioFormat.SampleRate,
+			"primaryLanguage", primaryLanguage)
+
+		// Log detailed context application
+		var totalPhrases int
+		var totalBoostSum float32
+		for i, context := range speechContexts {
+			totalPhrases += len(context.Phrases)
+			totalBoostSum += context.Boost
+			logger.Debug("Applied SpeechContext to recognition config",
+				"contextIndex", i+1,
+				"phrasesInContext", len(context.Phrases),
+				"contextBoost", context.Boost)
+		}
+		averageBoost := totalBoostSum / float32(len(speechContexts))
+		logger.Info("SpeechContexts application summary",
+			"totalContexts", len(speechContexts),
+			"totalPhrases", totalPhrases,
+			"averageBoost", averageBoost)
+	} else {
+		logger.Info("No SpeechContexts to apply to recognition configuration",
+			"encoding", encoding,
+			"sampleRate", config.AudioFormat.SampleRate,
+			"primaryLanguage", primaryLanguage)
+	}
+
 
 	logger.Info("Speech API configuration finalized",
 		"encoding", encoding,
@@ -280,14 +800,22 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	const maxStreamDuration = 300 * time.Second // 300 seconds, slightly less than 305s limit
 	var pendingAudioChunks [][]byte // Buffer for audio chunks during stream recreation
 	
-	// Function to create or recreate the stream
-	createStream := func() error {
+	// Dynamic keyword management (using global variables)
+	
+	// Function to create or recreate the stream with optional updated speech contexts
+	createStream := func(updatedContexts []*speechpb.SpeechContext) error {
 		streamMu.Lock()
 		defer streamMu.Unlock()
 		
 		// Close existing stream if it exists
 		if stream != nil {
 			stream.CloseSend()
+			stream = nil
+		}
+		
+		// Check if context is still valid before creating new stream
+		if ctx.Err() != nil {
+			return fmt.Errorf("context cancelled, cannot create new stream: %v", ctx.Err())
 		}
 		
 		// Create a new bidirectional streaming RPC
@@ -296,8 +824,42 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("failed to create streaming client: %v", err)
 		}
 		
+		// Create updated recognition config with new contexts if provided
+		currentRecognitionConfig := &speechpb.RecognitionConfig{
+			Encoding:                 encoding,
+			SampleRateHertz:          int32(config.AudioFormat.SampleRate),
+			LanguageCode:             primaryLanguage,
+			AlternativeLanguageCodes: alternativeLanguages,
+		}
+		
+		// Use updated contexts if provided, otherwise use original speech contexts
+		var contextsToUse []*speechpb.SpeechContext
+		if updatedContexts != nil {
+			contextsToUse = updatedContexts
+			logger.Info("Using updated SpeechContexts for stream recreation",
+				"contextsCount", len(updatedContexts))
+		} else {
+			contextsToUse = speechContexts
+			logger.Debug("Using original SpeechContexts for stream recreation",
+				"contextsCount", len(speechContexts))
+		}
+		
+		if len(contextsToUse) > 0 {
+			currentRecognitionConfig.SpeechContexts = contextsToUse
+		}
+		
+		// Create updated request template
+		currentReqTemplate := speechpb.StreamingRecognizeRequest{
+			StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
+				StreamingConfig: &speechpb.StreamingRecognitionConfig{
+					Config:         currentRecognitionConfig,
+					InterimResults: true,
+				},
+			},
+		}
+		
 		// Send the initial configuration message
-		if err := newStream.Send(&reqTemplate); err != nil {
+		if err := newStream.Send(&currentReqTemplate); err != nil {
 			return fmt.Errorf("failed to send initial config to Speech-to-Text: %v", err)
 		}
 		
@@ -342,7 +904,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Create initial stream
-	if err := createStream(); err != nil {
+	if err := createStream(nil); err != nil {
 		logger.Error("Failed to create initial stream", "error", err)
 		return
 	}
@@ -350,6 +912,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	var fullTranscription strings.Builder
 	var currentSummary string
 	var summaryMu sync.Mutex // Protect currentSummary from race conditions
+	customWords := config.CustomWords // Store custom words for use in summary generation
 
 	// Default prompt for summarization
 	defaultSummaryPrompt := `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
@@ -388,7 +951,12 @@ If this is an update to an existing summary, maintain the structure and content 
 			if err == io.EOF {
 				// Stream closed, try to recreate
 				logger.Debug("Speech-to-Text stream closed, recreating...")
-				if recreateErr := createStream(); recreateErr != nil {
+				if recreateErr := createStream(nil); recreateErr != nil {
+					// Check if the error is due to connection closing
+					if ctx.Err() != nil {
+						logger.Info("Context cancelled during stream recreation, stopping receive loop")
+						return
+					}
 					logger.Error("Failed to recreate stream", "error", recreateErr)
 					return
 				}
@@ -397,8 +965,18 @@ If this is an update to an existing summary, maintain the structure and content 
 			}
 			if err != nil {
 				logger.Error("Error receiving from Speech-to-Text", "error", err)
+				// Check if this is a context cancellation error
+				if ctx.Err() != nil {
+					logger.Info("Context cancelled, stopping receive loop")
+					return
+				}
 				// Try to recreate stream on error
-				if recreateErr := createStream(); recreateErr != nil {
+				if recreateErr := createStream(nil); recreateErr != nil {
+					// Check if the error is due to connection closing
+					if ctx.Err() != nil {
+						logger.Info("Context cancelled during stream recreation, stopping receive loop")
+						return
+					}
 					logger.Error("Failed to recreate stream after error", "error", recreateErr)
 					return
 				}
@@ -454,7 +1032,7 @@ If this is an update to an existing summary, maintain the structure and content 
 								logger.Debug("Generating summary",
 									"transcriptLength", len(fullTranscript),
 									"previousSummaryLength", len(previousSummary))
-								summary, err := generateSummary(ctx, projectID, location, fullTranscript, previousSummary, summaryPrompt)
+								summary, err := generateSummary(ctx, projectID, location, fullTranscript, previousSummary, summaryPrompt, customWords)
 								if err != nil {
 									logger.Error("Error generating summary", "error", err)
 									return
@@ -506,7 +1084,12 @@ If this is an update to an existing summary, maintain the structure and content 
 					logger.Info("Stream duration limit approaching, recreating stream",
 						"elapsed", elapsed,
 						"limit", maxStreamDuration)
-					if err := createStream(); err != nil {
+					if err := createStream(nil); err != nil {
+						// Check if the error is due to connection closing
+						if ctx.Err() != nil {
+							logger.Info("Context cancelled during stream recreation, stopping duration monitoring")
+							return
+						}
 						logger.Error("Failed to recreate stream due to duration limit", "error", err)
 					}
 				}
@@ -559,7 +1142,7 @@ If this is an update to an existing summary, maintain the structure and content 
 					streamMu.Unlock()
 					
 					// Try to recreate stream on send error
-					if recreateErr := createStream(); recreateErr != nil {
+					if recreateErr := createStream(nil); recreateErr != nil {
 						logger.Error("Failed to recreate stream after send error", "error", recreateErr)
 						return
 					}
@@ -580,10 +1163,107 @@ If this is an update to an existing summary, maintain the structure and content 
 				"chunkNumber", audioChunkCount)
 		case websocket.TextMessage:
 			logger.Debug("Received text message", "message", string(message))
-			// Check if it's a new config message (for system audio mode)
-			var newConfig ConfigMessage
-			if err := json.Unmarshal(message, &newConfig); err == nil && newConfig.Type == "config" {
-				logger.Info("Received new config message", "config", newConfig)
+			
+			// Parse the message to determine its type
+			var baseMessage struct {
+				Type string `json:"type"`
+			}
+			if err := json.Unmarshal(message, &baseMessage); err != nil {
+				logger.Warn("Failed to parse message type", "error", err, "message", string(message))
+				continue
+			}
+			
+			switch baseMessage.Type {
+			case "config":
+				// Check if it's a new config message (for system audio mode)
+				var newConfig ConfigMessage
+				if err := json.Unmarshal(message, &newConfig); err == nil {
+					logger.Info("Received new config message", "config", newConfig)
+				}
+			case "keywords":
+				// Handle keywords message (dynamic keyword updates during recording)
+				logger.Info("Dynamic keywords update received",
+					"rawMessage", string(message))
+
+				var keywordsMsg KeywordsMessage
+				if err := json.Unmarshal(message, &keywordsMsg); err != nil {
+					logger.Error("Failed to parse keywords message",
+						"error", err,
+						"rawMessage", string(message),
+						"messageLength", len(message))
+					continue
+				}
+				
+				logger.Info("Dynamic keywords processed successfully",
+					"words", keywordsMsg.Words,
+					"wordCount", len(keywordsMsg.Words),
+					"clientTimestamp", keywordsMsg.Timestamp,
+					"serverTimestamp", time.Now(),
+					"timeDelta", time.Since(keywordsMsg.Timestamp))
+				
+				// Log each individual keyword for detailed tracking
+				for i, word := range keywordsMsg.Words {
+					trimmedWord := strings.TrimSpace(word)
+					logger.Info("Dynamic keyword detail",
+						"index", i+1,
+						"originalWord", word,
+						"trimmedWord", trimmedWord,
+						"wordLength", len(word),
+						"trimmedLength", len(trimmedWord),
+						"isEmpty", trimmedWord == "")
+				}
+
+				// Update dynamic keywords and recreate stream with new SpeechContexts
+				keywordsMu.Lock()
+				// Add new keywords to existing dynamic keywords (avoiding duplicates)
+				existingKeywords := make(map[string]bool)
+				for _, existing := range dynamicKeywords {
+					existingKeywords[strings.ToLower(strings.TrimSpace(existing))] = true
+				}
+				
+				var newKeywordsToAdd []string
+				for _, newKeyword := range keywordsMsg.Words {
+					trimmed := strings.TrimSpace(newKeyword)
+					if trimmed != "" && !existingKeywords[strings.ToLower(trimmed)] {
+						newKeywordsToAdd = append(newKeywordsToAdd, trimmed)
+						dynamicKeywords = append(dynamicKeywords, trimmed)
+						existingKeywords[strings.ToLower(trimmed)] = true
+					}
+				}
+				
+				logger.Info("Dynamic keywords update processed",
+					"newKeywordsAdded", len(newKeywordsToAdd),
+					"totalDynamicKeywords", len(dynamicKeywords),
+					"newKeywords", newKeywordsToAdd,
+					"allDynamicKeywords", dynamicKeywords)
+				
+				// Create updated speech contexts combining original + dynamic keywords
+				updatedContexts := createDynamicSpeechContexts(currentSpeechContexts, dynamicKeywords)
+				keywordsMu.Unlock()
+				
+				// Recreate stream with updated contexts if we have new keywords
+				if len(newKeywordsToAdd) > 0 {
+					logger.Info("Recreating Speech-to-Text stream with dynamic keywords",
+						"newKeywordsCount", len(newKeywordsToAdd),
+						"totalDynamicKeywords", len(dynamicKeywords),
+						"updatedContextsCount", len(updatedContexts))
+					
+					if err := createStream(updatedContexts); err != nil {
+						logger.Error("Failed to recreate stream with dynamic keywords",
+							"error", err,
+							"newKeywords", newKeywordsToAdd)
+					} else {
+						logger.Info("Stream successfully recreated with dynamic keywords",
+							"appliedKeywords", newKeywordsToAdd,
+							"totalKeywords", len(dynamicKeywords))
+					}
+				} else {
+					logger.Info("No new keywords to apply - all keywords already exist",
+						"duplicateKeywords", keywordsMsg.Words,
+						"existingDynamicKeywords", dynamicKeywords)
+				}
+			default:
+				logger.Debug("Received unknown message type", "type", baseMessage.Type, "message", string(message))
 			}
 		}
 	}

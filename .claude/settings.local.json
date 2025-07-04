@@ -10,7 +10,15 @@
       "Bash(go test:*)",
       "WebFetch(domain:pkg.go.dev)",
       "Bash(go run:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(timeout:*)",
+      "Bash(export GCP_PROJECT_ID=test-project)",
+      "Bash(export GCP_LOCATION=us-central1)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
