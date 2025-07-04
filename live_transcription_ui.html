@@ -935,20 +935,181 @@
             background: var(--status-recording);
         }
         
-        /* Enhanced waveform */
-        .waveform-container {
-            position: relative;
-            margin: var(--space-3) 0;
-            height: 60px;
+        /* Visualizer Row Layout */
+        .visualizer-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin: var(--space-4) 0;
+            padding: var(--space-4);
             background: var(--bg-tertiary);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-primary);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Session Stats Compact */
+        .session-stats-compact {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            min-width: 100px;
+            text-align: center;
+        }
+        
+        .stat-item-compact {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--space-2);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-primary);
+        }
+        
+        .stat-item-compact .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-600);
+            line-height: 1;
+        }
+        
+        .stat-item-compact .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: var(--space-1);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Recording Time Compact */
+        .recording-time-compact {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+            text-align: center;
+            padding: var(--space-3);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-primary);
+        }
+        
+        .time-display {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-600);
+            font-family: var(--font-family-mono);
+            line-height: 1;
+        }
+        
+        .time-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: var(--space-1);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Advanced Audio Visualizer */
+        .audio-visualizer-container {
+            position: relative;
+            flex: 1;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
             border-radius: var(--radius-lg);
             overflow: hidden;
+            border: 1px solid var(--border-primary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* Waveform Display */
+        .waveform-display {
+            position: relative;
+            height: 100px;
+            background: radial-gradient(ellipse at center, var(--primary-500)/0.1, transparent);
         }
         
         .waveform-canvas {
             width: 100%;
             height: 100%;
-            background: transparent;
+            display: block;
+        }
+        
+        .waveform-center-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border-secondary);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        /* Frequency Bars */
+        .frequency-bars {
+            display: flex;
+            height: 40px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-primary);
+            padding: var(--space-2);
+            gap: 1px;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        
+        .frequency-bar {
+            flex: 1;
+            max-width: 8px;
+            background: linear-gradient(to top, 
+                var(--primary-600), 
+                var(--primary-500), 
+                var(--primary-400),
+                var(--warning-400));
+            border-radius: 1px 1px 0 0;
+            min-height: 2px;
+            transition: height 0.05s ease-out;
+            opacity: 0.8;
+        }
+        
+        .frequency-bar.active {
+            opacity: 1;
+            box-shadow: 0 0 4px var(--primary-500)/0.5;
+        }
+        
+        /* Audio Level Meter */
+        .audio-level-meter {
+            position: absolute;
+            top: var(--space-2);
+            right: var(--space-3);
+            width: 4px;
+            height: 80px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            border: 1px solid var(--border-primary);
+        }
+        
+        .level-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top,
+                var(--success-500),
+                var(--warning-500),
+                var(--error-500));
+            border-radius: 1px;
+            transition: height 0.1s ease-out;
+            min-height: 1px;
+        }
+        
+        .level-indicator {
+            position: absolute;
+            top: -20px;
+            right: -10px;
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
         }
         
         .speech-activity {
@@ -1062,6 +1223,28 @@
             
             h1 {
                 font-size: 1.875rem;
+            }
+            
+            /* Responsive visualizer layout */
+            .visualizer-row {
+                flex-direction: column;
+                gap: var(--space-3);
+                padding: var(--space-3);
+            }
+            
+            .session-stats-compact {
+                flex-direction: row;
+                justify-content: center;
+                gap: var(--space-3);
+                min-width: auto;
+            }
+            
+            .recording-time-compact {
+                min-width: auto;
+            }
+            
+            .audio-visualizer-container {
+                order: -1; /* Move visualizer to top on mobile */
             }
         }
 
@@ -1877,20 +2060,52 @@
                     </div>
                 </div>
                 
-                <!-- Visualizer Section -->
+                <!-- Audio Visualizer Section -->
                 <div class="visualizer-section">
-                    <div class="visualizer-container">
-                        <div id="visualizerBars" class="visualizer-bars"></div>
-                        <div class="waveform-container">
-                            <canvas id="waveform" width="400" height="60"></canvas>
-                            <div class="speech-activity-indicator" id="speechActivity">
+                    <div class="visualizer-row">
+                        <!-- Left Side: Session Stats -->
+                        <div class="session-stats-compact" id="statsContainer">
+                            <div class="stat-item-compact">
+                                <div class="stat-value" id="transcriptCount">0</div>
+                                <div class="stat-label">Transcripts</div>
+                            </div>
+                            <div class="stat-item-compact">
+                                <div class="stat-value" id="wordCount">0</div>
+                                <div class="stat-label">Words</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Center: Audio Visualizer -->
+                        <div class="audio-visualizer-container" id="audioVisualizerContainer">
+                            <!-- Waveform Display -->
+                            <div class="waveform-display">
+                                <canvas id="waveformCanvas" class="waveform-canvas"></canvas>
+                                <div class="waveform-center-line"></div>
+                            </div>
+                            
+                            <!-- Frequency Bars -->
+                            <div class="frequency-bars" id="frequencyBars"></div>
+                            
+                            <!-- Audio Level Meter -->
+                            <div class="audio-level-meter">
+                                <div class="level-bar" id="audioLevelBar"></div>
+                                <div class="level-indicator" id="levelIndicator">0%</div>
+                            </div>
+                            
+                            <!-- Speech Activity Indicator -->
+                            <div class="speech-activity" id="speechActivity">
                                 <div class="activity-pulse"></div>
                                 <span>Speaking</span>
                             </div>
                         </div>
-                    </div>
-                    <div class="recording-time" style="text-align: center; margin-top: 10px;">
-                        <span id="recordingTime">00:00</span>
+                        
+                        <!-- Right Side: Recording Time -->
+                        <div class="recording-time-compact">
+                            <div class="time-display">
+                                <span id="recordingTime">00:00</span>
+                            </div>
+                            <div class="time-label">Session Time</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1922,22 +2137,6 @@
                             </button>
                         </div>
                         <div id="summaryOutput" class="summary-output empty" data-placeholder="Summary will appear here..."></div>
-                    </div>
-                </div>
-                
-                <!-- Session Statistics -->
-                <div class="stats-container" id="statsContainer">
-                    <div class="stat-item">
-                        <div class="stat-value" id="transcriptCount">0</div>
-                        <div>Transcripts</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="wordCount">0</div>
-                        <div>Words</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="sessionTime">00:00</div>
-                        <div>Session Time</div>
                     </div>
                 </div>
             </div>
@@ -2340,7 +2539,6 @@
             <div class="recording-status-content">
                 <span class="recording-dot"></span>
                 <span>Live transcription in progress...</span>
-                <div id="recordingTime" class="recording-time">00:00</div>
             </div>
             <div class="recording-controls">
                 <div class="status-indicator status-recording">
@@ -3368,7 +3566,7 @@ Update previous interview notes while maintaining consistency in evaluation crit
                 const statsContainer = document.getElementById('statsContainer');
                 const transcriptCountSpan = document.getElementById('transcriptCount');
                 const wordsCountSpan = document.getElementById('wordCount');
-                const sessionTimeSpan = document.getElementById('sessionTime');
+                const sessionTimeSpan = document.getElementById('recordingTime');
 
                 let totalWords = 0;
                 let finalTranscriptEntries = 0;
@@ -3527,12 +3725,7 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         
                         const wsUrl = 'ws://localhost:8080/ws'; // Default WebSocket URL
                         
-                        // Debug: Check if languageCodesInput exists and has value
-                        console.log('🔍 Language input element:', languageCodesInput);
-                        console.log('🔍 Language input value:', languageCodesInput ? languageCodesInput.value : 'ELEMENT NOT FOUND');
-                        
                         const languageCodes = languageCodesInput.value.split(',').map(code => code.trim()).filter(code => code.length > 0);
-                        console.log('🌐 Language codes to send:', languageCodes);
                         const customWords = [];
                         
                         // Collect phrase sets configuration
@@ -3543,11 +3736,7 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         // Collect classes configuration
                         const classesConfig = collectClassesConfig();
                         
-                        console.log('📋 Config to send:', {
-                            languageCodes,
-                            phraseSetsConfig,
-                            classesConfig
-                        });
+                        // Config prepared for sending
                         
                         await recorder.startRecording(wsUrl, languageCodes, customWords, phraseSetsConfig, classesConfig);
                         startBtn.disabled = true;
@@ -3557,11 +3746,11 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         audioVisualizerDiv.classList.remove('hidden');
                         statsContainer.style.display = 'flex';
                         
-                        // Show enhanced waveform
-                        const waveformContainer = document.getElementById('waveformContainer');
-                        if (waveformContainer) {
-                            waveformContainer.style.display = 'block';
-                            cleanupWaveform = initializeWaveform();
+                        // Show audio visualizer
+                        const audioVisualizerContainer = document.getElementById('audioVisualizerContainer');
+                        if (audioVisualizerContainer) {
+                            audioVisualizerContainer.style.display = 'block';
+                            cleanupWaveform = initializeAudioVisualizer();
                         }
                         
                         startSessionTimer();
@@ -3638,11 +3827,11 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     // Hide live indicators
                     const liveIndicator = document.getElementById('liveIndicator');
                     const confidenceIndicator = document.getElementById('confidenceIndicator');
-                    const waveformContainer = document.getElementById('waveformContainer');
+                    const audioVisualizerContainer = document.getElementById('audioVisualizerContainer');
                     
                     if (liveIndicator) liveIndicator.style.display = 'none';
                     if (confidenceIndicator) confidenceIndicator.style.display = 'none';
-                    if (waveformContainer) waveformContainer.style.display = 'none';
+                    if (audioVisualizerContainer) audioVisualizerContainer.style.display = 'none';
                     
                     // Cleanup waveform
                     if (cleanupWaveform) {
@@ -3697,11 +3886,8 @@ Update previous interview notes while maintaining consistency in evaluation crit
                 });
 
                 document.addEventListener('transcription', (event) => {
-                    console.log('🎤 Transcription event received:', event.detail);
                     const data = event.detail;
                     if (data.text) {
-                        console.log(`📝 Processing transcript: "${data.text}" (final: ${data.final})`);
-                        
                         // Show live indicator
                         const liveIndicator = document.getElementById('liveIndicator');
                         if (liveIndicator) {
@@ -3709,7 +3895,6 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         }
                         
                         if (data.final) {
-                            console.log('✅ Adding final transcript to UI');
                             
                             // Add timestamp to final transcript
                             const timestamp = new Date().toLocaleTimeString();
@@ -3730,14 +3915,11 @@ Update previous interview notes while maintaining consistency in evaluation crit
                                 confidenceIndicator.style.display = 'none';
                             }
                         } else {
-                            console.log('⏳ Updating interim transcript in UI');
                             interimTranscriptOutput.value = data.text;
                             
                             // Show confidence indicator for interim results
                             updateConfidenceIndicator(data.confidence || Math.random()); // Use random if not provided
                         }
-                    } else {
-                        console.warn('⚠️ Transcription event received but no text field found:', data);
                     }
                 });
                 
@@ -3764,73 +3946,160 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     }
                 }
                 
-                // Enhanced waveform visualization
-                function initializeWaveform() {
+                // Advanced Audio Visualizer
+                function initializeAudioVisualizer() {
+                    const container = document.getElementById('audioVisualizerContainer');
                     const canvas = document.getElementById('waveformCanvas');
-                    const container = document.getElementById('waveformContainer');
+                    const frequencyBarsContainer = document.getElementById('frequencyBars');
+                    const audioLevelBar = document.getElementById('audioLevelBar');
+                    const levelIndicator = document.getElementById('levelIndicator');
                     const speechActivity = document.getElementById('speechActivity');
                     
-                    if (!canvas || !container) return;
+                    if (!container || !canvas || !frequencyBarsContainer) return;
                     
+                    // Setup canvas
                     const ctx = canvas.getContext('2d');
-                    canvas.width = container.offsetWidth;
-                    canvas.height = container.offsetHeight;
+                    const resizeCanvas = () => {
+                        canvas.width = canvas.offsetWidth;
+                        canvas.height = canvas.offsetHeight;
+                    };
+                    resizeCanvas();
+                    window.addEventListener('resize', resizeCanvas);
                     
-                    let waveformData = new Array(100).fill(0);
+                    // Create frequency bars
+                    const numFreqBars = 20;
+                    frequencyBarsContainer.innerHTML = '';
+                    for (let i = 0; i < numFreqBars; i++) {
+                        const bar = document.createElement('div');
+                        bar.className = 'frequency-bar';
+                        bar.style.height = '2px';
+                        frequencyBarsContainer.appendChild(bar);
+                    }
+                    const frequencyBars = frequencyBarsContainer.querySelectorAll('.frequency-bar');
+                    
+                    // Waveform data history
+                    const waveformHistory = new Array(200).fill(0);
                     let animationFrame;
                     
+                    // Draw waveform
                     function drawWaveform() {
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         
-                        const barWidth = canvas.width / waveformData.length;
-                        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.7)');
-                        gradient.addColorStop(1, 'rgba(59, 130, 246, 1)');
+                        const centerY = canvas.height / 2;
+                        const width = canvas.width;
+                        const stepX = width / waveformHistory.length;
                         
-                        ctx.fillStyle = gradient;
+                        // Create gradient
+                        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+                        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+                        gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.8)');
+                        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.3)');
                         
-                        waveformData.forEach((value, index) => {
-                            const barHeight = value * canvas.height;
-                            const x = index * barWidth;
-                            const y = (canvas.height - barHeight) / 2;
-                            
-                            ctx.fillRect(x, y, barWidth - 1, barHeight);
+                        // Draw waveform line
+                        ctx.strokeStyle = gradient;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        
+                        waveformHistory.forEach((value, index) => {
+                            const x = index * stepX;
+                            const y = centerY + (value * centerY * 0.8);
+                            if (index === 0) {
+                                ctx.moveTo(x, y);
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
                         });
+                        
+                        ctx.stroke();
+                        
+                        // Draw filled area under waveform
+                        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+                        ctx.beginPath();
+                        ctx.moveTo(0, centerY);
+                        waveformHistory.forEach((value, index) => {
+                            const x = index * stepX;
+                            const y = centerY + (value * centerY * 0.8);
+                            ctx.lineTo(x, y);
+                        });
+                        ctx.lineTo(width, centerY);
+                        ctx.closePath();
+                        ctx.fill();
                         
                         animationFrame = requestAnimationFrame(drawWaveform);
                     }
                     
+                    drawWaveform();
+                    
+                    // Audio processing function
                     window.updateWaveform = (audioData) => {
                         if (audioData && audioData.length > 0) {
-                            // Shift old data and add new
-                            waveformData.shift();
-                            const average = audioData.reduce((sum, val) => sum + Math.abs(val), 0) / audioData.length;
-                            waveformData.push(Math.min(1, average * 10)); // Scale and clamp
+                            // Calculate RMS (Root Mean Square) for overall level
+                            const rms = Math.sqrt(audioData.reduce((sum, val) => sum + val * val, 0) / audioData.length);
+                            const rmsPercent = Math.min(100, rms * 1000);
                             
-                            // Show speech activity
-                            if (speechActivity && average > 0.01) {
+                            // Update audio level meter
+                            if (audioLevelBar) {
+                                audioLevelBar.style.height = `${rmsPercent}%`;
+                            }
+                            if (levelIndicator) {
+                                levelIndicator.textContent = `${Math.round(rmsPercent)}%`;
+                            }
+                            
+                            // Add to waveform history (use peak value for visual impact)
+                            const peak = Math.max(...audioData.map(Math.abs));
+                            waveformHistory.shift();
+                            waveformHistory.push(peak * 2); // Scale for visibility
+                            
+                            // Update frequency bars with different segments of audio data
+                            const segmentSize = Math.floor(audioData.length / numFreqBars);
+                            frequencyBars.forEach((bar, index) => {
+                                const start = index * segmentSize;
+                                const end = Math.min(start + segmentSize, audioData.length);
+                                const segment = audioData.slice(start, end);
+                                const segmentRms = Math.sqrt(segment.reduce((sum, val) => sum + val * val, 0) / segment.length);
+                                
+                                const height = Math.max(2, Math.min(35, segmentRms * 800));
+                                bar.style.height = `${height}px`;
+                                
+                                // Add active class for visual feedback
+                                if (segmentRms > 0.01) {
+                                    bar.classList.add('active');
+                                    setTimeout(() => bar.classList.remove('active'), 100);
+                                }
+                            });
+                            
+                            // Speech activity detection
+                            const overallActivity = rms;
+                            if (speechActivity && overallActivity > 0.015) {
                                 speechActivity.classList.add('active');
-                                setTimeout(() => speechActivity.classList.remove('active'), 200);
+                                setTimeout(() => speechActivity.classList.remove('active'), 300);
                             }
                         }
                     };
                     
-                    drawWaveform();
-                    
                     return () => {
+                        // Cleanup
                         if (animationFrame) {
                             cancelAnimationFrame(animationFrame);
                         }
+                        window.removeEventListener('resize', resizeCanvas);
+                        
+                        // Reset visualizations
+                        frequencyBars.forEach(bar => {
+                            bar.style.height = '2px';
+                            bar.classList.remove('active');
+                        });
+                        if (audioLevelBar) audioLevelBar.style.height = '1px';
+                        if (levelIndicator) levelIndicator.textContent = '0%';
+                        waveformHistory.fill(0);
                     };
                 }
                 
                 let cleanupWaveform;
 
                 document.addEventListener('summary', (event) => {
-                    console.log('📄 Summary event received:', event.detail);
                     const data = event.detail;
                     if (data.text) {
-                        console.log(`📋 Processing summary: "${data.text.substring(0, 100)}..."`);
                         // Store raw markdown for copying
                         rawSummaryMarkdown = data.text;
                         // Render markdown content
@@ -3839,14 +4108,12 @@ Update previous interview notes while maintaining consistency in evaluation crit
                             summaryOutput.innerHTML = renderedMarkdown;
                             summaryOutput.classList.remove('empty');
                             scrollToBottom(summaryOutput);
-                            console.log('✅ Summary markdown rendered and added to UI');
                         } catch (error) {
                             console.error('❌ Error rendering markdown:', error);
                             // Fallback to plain text
                             summaryOutput.textContent = data.text;
                             summaryOutput.classList.remove('empty');
                             scrollToBottom(summaryOutput);
-                            console.log('⚠️ Fallback: Summary added as plain text');
                         }
                         copySummaryBtn.disabled = false;
                         
@@ -3854,8 +4121,6 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         if (sessionManager.currentSession) {
                             sessionManager.currentSession.summary = data.text;
                         }
-                    } else {
-                        console.warn('⚠️ Summary event received but no text field found:', data);
                     }
                 });
 
@@ -4061,15 +4326,8 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     const langInput = document.getElementById('languageCodes');
                     if (langInput) {
                         const languageCodes = langInput.value.split(',').map(code => code.trim()).filter(code => code.length > 0);
-                        console.log('🗺 Language Input Element:', langInput);
-                        console.log('🗺 Raw Value:', langInput.value);
-                        console.log('🗺 Processed Language Codes:', languageCodes);
-                        console.log('🗺 Primary Language:', languageCodes[0] || 'NONE');
-                        console.log('🗺 Alternative Languages:', languageCodes.slice(1));
-                        
                         showToast(`Primary: ${languageCodes[0] || 'NONE'}, Alternatives: [${languageCodes.slice(1).join(', ')}]`, 'info', 8000);
                     } else {
-                        console.error('❌ Language codes input element not found!');
                         showToast('Language codes input element not found!', 'error');
                     }
                 };
