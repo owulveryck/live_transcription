@@ -18,7 +18,10 @@
       "mcp__context7__get-library-docs",
       "Bash(curl:*)",
       "Bash(python3:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(sips:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
