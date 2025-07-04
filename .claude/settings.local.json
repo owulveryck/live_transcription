@@ -21,7 +21,9 @@
       "Bash(rg:*)",
       "Bash(ls:*)",
       "Bash(sips:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(cat:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }

@@ -16,11 +16,13 @@
             this.audioContext = null;
             this.analyser = null;
             this.processor = null;
+            this.workletNode = null;
             this.mediaRecorder = null;
             this.isRecording = false;
             this.recordingStartTime = null;
             this.recordingTimer = null;
             this.visualizerTimer = null;
+            this.workletLoaded = false;
         }
 
         // Check if the browser supports system audio capture
@@ -212,6 +214,7 @@
 
             try {
                 this.audioContext = new AudioContext(); // Use browser default sample rate for compatibility
+                this.workletLoaded = false; // Reset worklet flag for new AudioContext
                 const audioStream = await this._setupAudioStreams();
 
                 this._setupAudioContextAndVisualizer(audioStream);
@@ -231,6 +234,14 @@
                 // Clean up on error
                 if (this.recordingTimer) clearInterval(this.recordingTimer);
                 if (this.visualizerTimer) clearInterval(this.visualizerTimer);
+                if (this.workletNode) {
+                    this.workletNode.disconnect();
+                    this.workletNode = null;
+                }
+                if (this.processor) {
+                    this.processor.disconnect();
+                    this.processor = null;
+                }
                 if (this.micStream) {
                     this.micStream.getTracks().forEach(track => track.stop());
                     this.micStream = null;
@@ -400,7 +411,7 @@
             this.socket.onclose = this._onWebSocketClose.bind(this);
         }
 
-        _setupMediaRecorder(languageCodes) {
+        async _setupMediaRecorder(languageCodes) {
             const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
             let streamToRecord;
             
@@ -448,43 +459,159 @@
             
             // Use AudioContext approach for consistent processing
             console.log("Setting up system audio processing with AudioContext");
-            this._setupSystemAudioWithAudioContext(streamToRecord, languageCodes);
+            await this._setupSystemAudioWithAudioContext(streamToRecord, languageCodes);
         }
 
-        _setupSystemAudioWithAudioContext(systemStream, languageCodes) {
+        async _setupSystemAudioWithAudioContext(systemStream, languageCodes) {
             console.log("Setting up system audio processing with AudioContext");
+            
+            try {
+                // Load AudioWorklet module if not already loaded
+                if (!this.workletLoaded) {
+                    console.log("Loading audio-processor.js module for system audio...");
+                    try {
+                        await this.audioContext.audioWorklet.addModule('audio-processor.js');
+                        this.workletLoaded = true;
+                        console.log("AudioWorklet module loaded successfully for system audio");
+                    } catch (loadError) {
+                        console.error("Failed to load AudioWorklet module for system audio:", loadError);
+                        throw new Error("Could not load audio-processor.js. Make sure the file exists and is accessible.");
+                    }
+                }
+
+                // Create audio source from system stream
+                const source = this.audioContext.createMediaStreamSource(systemStream);
+                
+                // Create AudioWorkletNode to replace deprecated ScriptProcessorNode
+                console.log("Creating AudioWorkletNode for system audio...");
+                this.systemWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-processor', {
+                    numberOfInputs: 1,
+                    numberOfOutputs: 1,
+                    channelCount: 1
+                });
+                console.log("System AudioWorkletNode created successfully");
+
+                // Listen for audio data from the worklet
+                this.systemWorkletNode.port.onmessage = (event) => {
+                    if (event.data.type === 'audio-data') {
+                        this._handleAudioData(event.data.data, event.data.rawData);
+                    }
+                };
+
+                // Connect the processing chain
+                source.connect(this.systemWorkletNode);
+                // Don't connect to destination to avoid audio feedback
+                
+                console.log("System audio processing setup complete - using AudioWorkletNode");
+            } catch (error) {
+                console.error("Error setting up system audio with AudioWorklet:", error);
+                // Fallback to ScriptProcessorNode for compatibility
+                console.log("Falling back to ScriptProcessorNode for system audio");
+                this._setupSystemAudioFallback(systemStream);
+            }
+        }
+
+        _setupSystemAudioFallback(systemStream) {
+            console.log("Setting up system audio processing with ScriptProcessorNode (fallback)");
             
             // Create audio source from system stream
             const source = this.audioContext.createMediaStreamSource(systemStream);
             
-            // Create script processor for real-time audio processing (same as microphone)
+            // Create script processor for real-time audio processing (fallback)
             this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
             this.processor.onaudioprocess = this._onAudioProcess.bind(this);
             
             // Connect the processing chain
             source.connect(this.processor);
-            this.processor.connect(this.audioContext.destination);
+            // Don't connect to destination to avoid audio feedback
             
-            console.log("System audio processing setup complete - using PCM data streaming");
+            console.log("System audio processing setup complete - using ScriptProcessorNode (fallback)");
         }
 
         // Start audio processing for Google Cloud Speech-to-Text live streaming
-        startAudioProcessing(stream) {
+        async startAudioProcessing(stream) {
             if (!this.audioContext || !stream) {
                 console.error("Audio context or stream not available");
                 return;
             }
 
+            try {
+                // Load AudioWorklet module if not already loaded
+                if (!this.workletLoaded) {
+                    console.log("Loading audio-processor.js module...");
+                    try {
+                        await this.audioContext.audioWorklet.addModule('audio-processor.js');
+                        this.workletLoaded = true;
+                        console.log("AudioWorklet module loaded successfully");
+                    } catch (loadError) {
+                        console.error("Failed to load AudioWorklet module:", loadError);
+                        throw new Error("Could not load audio-processor.js. Make sure the file exists and is accessible.");
+                    }
+                }
+
+                const source = this.audioContext.createMediaStreamSource(stream);
+
+                // Create AudioWorkletNode to replace deprecated ScriptProcessorNode
+                console.log("Creating AudioWorkletNode...");
+                this.workletNode = new AudioWorkletNode(this.audioContext, 'audio-processor', {
+                    numberOfInputs: 1,
+                    numberOfOutputs: 1,
+                    channelCount: 1
+                });
+                console.log("AudioWorkletNode created successfully");
+
+                // Listen for audio data from the worklet
+                this.workletNode.port.onmessage = (event) => {
+                    if (event.data.type === 'audio-data') {
+                        this._handleAudioData(event.data.data, event.data.rawData);
+                    }
+                };
+
+                source.connect(this.workletNode);
+                // Don't connect to destination to avoid audio feedback
+
+                console.log("Audio processing started with AudioWorkletNode");
+            } catch (error) {
+                console.error("Error starting AudioWorklet:", error);
+                // Fallback to ScriptProcessorNode for compatibility
+                console.log("Falling back to ScriptProcessorNode");
+                this._startFallbackAudioProcessing(stream);
+            }
+        }
+
+        // Handle audio data from AudioWorkletNode
+        _handleAudioData(pcmData16, rawData) {
+            if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+                console.log("⚠️ Cannot send audio: WebSocket not ready");
+                return;
+            }
+
+            // Reduced logging: only log occasionally to avoid spam
+            if (Math.random() < 0.001) { // Log 0.1% of the time
+                console.log(`🎵 Audio data: ${pcmData16.byteLength} bytes`);
+            }
+            
+            // Update waveform visualization if available
+            if (window.updateWaveform && typeof window.updateWaveform === 'function') {
+                window.updateWaveform(rawData);
+            }
+            
+            // Send raw PCM data as binary message
+            this.socket.send(pcmData16.buffer);
+        }
+
+        // Fallback method using deprecated ScriptProcessorNode for compatibility
+        _startFallbackAudioProcessing(stream) {
             const source = this.audioContext.createMediaStreamSource(stream);
 
-            // Create script processor for real-time audio processing
+            // Create script processor for real-time audio processing (deprecated)
             this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
             this.processor.onaudioprocess = this._onAudioProcess.bind(this);
 
             source.connect(this.processor);
-            this.processor.connect(this.audioContext.destination);
+            // Don't connect to destination to avoid audio feedback
 
-            console.log("Audio processing started for Google Cloud Speech-to-Text");
+            console.log("Audio processing started with ScriptProcessorNode (fallback)");
         }
 
         _onAudioProcess(event) {
@@ -509,7 +636,7 @@
             this.socket.send(pcmData16.buffer);
         }
 
-        _onWebSocketOpen(languageCodes, customWords = [], phraseSetsConfig = null, classesConfig = null) {
+        async _onWebSocketOpen(languageCodes, customWords = [], phraseSetsConfig = null, classesConfig = null) {
             console.log("🔗 WebSocket connection established for Google Cloud Speech-to-Text live streaming");
             
             const recordingMode = document.querySelector('input[name="recordingMode"]:checked')?.value || 'microphone';
@@ -538,10 +665,10 @@
             
             // For system audio or mixed mode, use MediaRecorder approach
             if (recordingMode === 'system' || recordingMode === 'both') {
-                this._setupMediaRecorder(languageCodes);
+                await this._setupMediaRecorder(languageCodes);
             } else {
                 // For microphone only, use the original PCM approach
-                this.startAudioProcessing(this.micStream);
+                await this.startAudioProcessing(this.micStream);
             }
         }
 
@@ -608,6 +735,12 @@
             if (this.processor) {
                 this.processor.disconnect();
                 this.processor = null;
+            }
+            
+            // Stop worklet node
+            if (this.workletNode) {
+                this.workletNode.disconnect();
+                this.workletNode = null;
             }
             
             // Stop MediaRecorder
