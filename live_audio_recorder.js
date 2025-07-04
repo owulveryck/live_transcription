@@ -495,7 +495,16 @@
 
             const inputData = event.inputBuffer.getChannelData(0); // Raw PCM data
             const pcmData16 = this.convertFloat32ToInt16(inputData);
-            console.log(`🎵 Sending audio data: ${pcmData16.byteLength} bytes`);
+            // Reduced logging: only log occasionally to avoid spam
+            if (Math.random() < 0.001) { // Log 0.1% of the time
+                console.log(`🎵 Audio data: ${pcmData16.byteLength} bytes`);
+            }
+            
+            // Update waveform visualization if available
+            if (window.updateWaveform && typeof window.updateWaveform === 'function') {
+                window.updateWaveform(inputData);
+            }
+            
             // Send raw PCM data as binary message
             this.socket.send(pcmData16.buffer);
         }
@@ -539,29 +548,29 @@
         _onWebSocketMessage(event) {
             try {
                 const data = JSON.parse(event.data);
-                console.log("🔔 Raw WebSocket message received:", event.data);
-                console.log("📦 Parsed message:", data);
+                // Reduced logging: only log message type, not full content
+                console.log("📦 Message type:", data.type);
 
                 if (data.type === "summary") {
-                    console.log("📄 Dispatching summary event");
                     const summaryEvent = new CustomEvent('summary', {
                         detail: data
                     });
                     document.dispatchEvent(summaryEvent);
                 } else if (data.type === "transcription") {
-                    console.log("🎤 Dispatching transcription event");
                     const transcriptionEvent = new CustomEvent('transcription', {
                         detail: data
                     });
                     document.dispatchEvent(transcriptionEvent);
                 } else if (data.type === "status") {
-                    console.log("📊 Received status update:", data.status, data.message);
+                    if (data.status !== 'stream_recreated') { // Only log non-routine status updates
+                        console.log("📊 Status:", data.status, data.message);
+                    }
                     const statusEvent = new CustomEvent('recorderstatus', {
                         detail: data
                     });
                     document.dispatchEvent(statusEvent);
                 } else {
-                    console.warn("⚠️ Unknown message type:", data.type, data);
+                    console.warn("⚠️ Unknown message type:", data.type);
                 }
             } catch (error) {
                 console.error("❌ Error parsing server message:", error, "Raw data:", event.data);
