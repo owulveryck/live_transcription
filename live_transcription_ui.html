@@ -2107,6 +2107,15 @@
                             </div>
                         </div>
 
+                        <!-- End Prompt Configuration -->
+                        <div class="control-row" style="margin-bottom: var(--space-4);">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="endPrompt" class="form-label">End Prompt (Stop Button)</label>
+                                <textarea id="endPrompt" class="form-control" rows="6" placeholder="Loading default end prompt..." style="resize: vertical; min-height: 150px; font-family: var(--font-family-mono); font-size: 0.875rem;"></textarea>
+                                <p class="form-hint">This prompt is triggered when you press the Stop button. It's appended to the summary prompt to finalize the conversation summary with conclusions, key points, and next actions.</p>
+                            </div>
+                        </div>
+
                         <!-- Prompt Management Buttons -->
                         <div class="control-row" style="margin-bottom: var(--space-4);">
                             <div class="form-group">
@@ -2123,25 +2132,25 @@
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                             <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/>
                                         </svg>
-                                        Save Prompt
+                                        Save Prompts
                                     </button>
                                     <button type="button" id="exportPrompt" class="btn btn-outline">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                             <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                                         </svg>
-                                        Export Prompt
+                                        Export Prompts
                                     </button>
                                     <label for="importPromptFile" class="btn btn-outline" style="margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2);">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                             <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
                                         </svg>
-                                        Import Prompt
-                                        <input type="file" id="importPromptFile" accept=".txt,.md" style="display: none;">
+                                        Import Prompts
+                                        <input type="file" id="importPromptFile" accept=".txt,.md,.json" style="display: none;">
                                     </label>
                                 </div>
-                                <p class="form-hint">Save your custom prompt to localStorage, export it as a file, or import a previously saved prompt from a text file.</p>
+                                <p class="form-hint">Save your custom prompts to localStorage, export them as files, or import previously saved prompts. Both summary and end prompts are managed together.</p>
                             </div>
                         </div>
 
@@ -2891,6 +2900,7 @@
             // Summary prompt management functionality
             const summaryPromptManager = {
                 defaultPrompt: '', // Will be loaded from backend
+                defaultEndPrompt: '', // Default end prompt
                 backendPromptLoaded: false,
 
                 // Fetch default prompt from backend
@@ -2900,34 +2910,43 @@
                         if (response.ok) {
                             const data = await response.json();
                             this.defaultPrompt = data.defaultPrompt;
+                            this.defaultEndPrompt = data.defaultEndPrompt || this.getFallbackEndPrompt();
                             this.backendPromptLoaded = true;
                             // Update preset as well for consistency
                             this.presetPrompts.default = data.defaultPrompt;
-                            // Update placeholder text to show the actual default prompt
-                            this.updatePlaceholder();
-                            console.log('Default prompt loaded from backend');
+                            // Update placeholder text to show the actual default prompts
+                            this.updatePlaceholders();
+                            console.log('Default prompts loaded from backend');
                             return this.defaultPrompt;
                         } else {
                             console.error('Failed to fetch default prompt from backend');
                             const fallback = this.getFallbackPrompt();
+                            const fallbackEnd = this.getFallbackEndPrompt();
                             this.defaultPrompt = fallback;
-                            this.updatePlaceholder();
+                            this.defaultEndPrompt = fallbackEnd;
+                            this.updatePlaceholders();
                             return fallback;
                         }
                     } catch (error) {
                         console.error('Error fetching default prompt:', error);
                         const fallback = this.getFallbackPrompt();
+                        const fallbackEnd = this.getFallbackEndPrompt();
                         this.defaultPrompt = fallback;
-                        this.updatePlaceholder();
+                        this.defaultEndPrompt = fallbackEnd;
+                        this.updatePlaceholders();
                         return fallback;
                     }
                 },
 
-                // Update the placeholder text to show the actual default prompt
-                updatePlaceholder() {
+                // Update the placeholder text to show the actual default prompts
+                updatePlaceholders() {
                     const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    const endPromptTextarea = document.getElementById('endPrompt');
                     if (summaryPromptTextarea && this.defaultPrompt) {
                         summaryPromptTextarea.setAttribute('placeholder', this.defaultPrompt);
+                    }
+                    if (endPromptTextarea && this.defaultEndPrompt) {
+                        endPromptTextarea.setAttribute('placeholder', this.defaultEndPrompt);
                     }
                 },
 
@@ -2943,6 +2962,21 @@
 6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
 
 If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`;
+                },
+
+                // Fallback end prompt if backend is not available
+                getFallbackEndPrompt() {
+                    return `**IMPORTANT**: Keep the existing summary language and maintain the structure above.
+
+Now add a **conclusion** to finalize this conversation summary. Include:
+
+## Conclusion
+- **Key Points**: Summarize the main takeaways from the conversation
+- **Important Decisions**: Highlight any decisions or agreements made
+- **Action Items**: List specific next steps or tasks identified
+- **Follow-up**: Note any planned future discussions or meetings
+
+Ensure the conclusion flows naturally from the existing summary and provides clear closure to the conversation.`;
                 },
 
                 presetPrompts: {
@@ -3025,9 +3059,21 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     return saved || this.defaultPrompt || this.getFallbackPrompt();
                 },
 
-                savePrompt: function(prompt) {
-                    localStorage.setItem('summaryPrompt', prompt);
-                    showToast('Summary prompt saved successfully!', 'success');
+                getCurrentEndPrompt: function() {
+                    const endPromptTextarea = document.getElementById('endPrompt');
+                    if (endPromptTextarea && endPromptTextarea.value.trim()) {
+                        return endPromptTextarea.value.trim();
+                    }
+                    
+                    // If textarea is empty, return saved prompt or backend default
+                    const saved = localStorage.getItem('endPrompt');
+                    return saved || this.defaultEndPrompt || this.getFallbackEndPrompt();
+                },
+
+                savePrompt: function(summaryPrompt, endPrompt) {
+                    localStorage.setItem('summaryPrompt', summaryPrompt);
+                    localStorage.setItem('endPrompt', endPrompt);
+                    showToast('Summary and end prompts saved successfully!', 'success');
                 },
 
                 async loadPrompt() {
@@ -3037,10 +3083,18 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     }
 
                     const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    const endPromptTextarea = document.getElementById('endPrompt');
+                    
                     if (summaryPromptTextarea) {
                         // Check if user has a saved custom prompt, otherwise use backend default
                         const saved = localStorage.getItem('summaryPrompt');
                         summaryPromptTextarea.value = saved || this.defaultPrompt || this.getFallbackPrompt();
+                    }
+                    
+                    if (endPromptTextarea) {
+                        // Check if user has a saved custom end prompt, otherwise use backend default
+                        const savedEnd = localStorage.getItem('endPrompt');
+                        endPromptTextarea.value = savedEnd || this.defaultEndPrompt || this.getFallbackEndPrompt();
                     }
                 },
 
@@ -3049,10 +3103,17 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     const defaultPrompt = await this.fetchDefaultPrompt();
                     
                     const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    const endPromptTextarea = document.getElementById('endPrompt');
+                    
                     if (summaryPromptTextarea) {
                         summaryPromptTextarea.value = defaultPrompt;
-                        showToast('Reset to backend default prompt', 'info');
                     }
+                    
+                    if (endPromptTextarea) {
+                        endPromptTextarea.value = this.defaultEndPrompt;
+                    }
+                    
+                    showToast('Reset to backend default prompts', 'info');
                 },
 
                 applyPreset: function(presetName) {
@@ -3065,17 +3126,28 @@ Update previous interview notes while maintaining consistency in evaluation crit
 
                 exportPrompt: function() {
                     const summaryPromptTextarea = document.getElementById('summaryPrompt');
-                    if (!summaryPromptTextarea || !summaryPromptTextarea.value.trim()) {
-                        showToast('No prompt to export', 'warning');
+                    const endPromptTextarea = document.getElementById('endPrompt');
+                    
+                    const summaryPrompt = summaryPromptTextarea ? summaryPromptTextarea.value.trim() : '';
+                    const endPrompt = endPromptTextarea ? endPromptTextarea.value.trim() : '';
+                    
+                    if (!summaryPrompt && !endPrompt) {
+                        showToast('No prompts to export', 'warning');
                         return;
                     }
 
-                    const prompt = summaryPromptTextarea.value;
-                    const filename = prompt('Enter filename for prompt export:', `summary-prompt-${new Date().toISOString().split('T')[0]}.txt`);
+                    const promptData = {
+                        summaryPrompt: summaryPrompt,
+                        endPrompt: endPrompt,
+                        exportDate: new Date().toISOString(),
+                        version: '1.0'
+                    };
+
+                    const filename = prompt('Enter filename for prompts export:', `prompts-${new Date().toISOString().split('T')[0]}.json`);
                     if (!filename) return;
 
-                    const dataStr = prompt;
-                    const dataBlob = new Blob([dataStr], {type: 'text/plain'});
+                    const dataStr = JSON.stringify(promptData, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
                     const url = URL.createObjectURL(dataBlob);
                     const link = document.createElement('a');
                     link.href = url;
@@ -3085,22 +3157,37 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
                     
-                    showToast('Prompt exported successfully!', 'success');
+                    showToast('Prompts exported successfully!', 'success');
                 },
 
                 importPrompt: function(file) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         try {
-                            const prompt = e.target.result;
+                            const content = e.target.result;
                             const summaryPromptTextarea = document.getElementById('summaryPrompt');
-                            if (summaryPromptTextarea) {
-                                summaryPromptTextarea.value = prompt;
-                                showToast('Prompt imported successfully!', 'success');
+                            const endPromptTextarea = document.getElementById('endPrompt');
+                            
+                            // Try to parse as JSON first (new format)
+                            try {
+                                const promptData = JSON.parse(content);
+                                if (promptData.summaryPrompt && summaryPromptTextarea) {
+                                    summaryPromptTextarea.value = promptData.summaryPrompt;
+                                }
+                                if (promptData.endPrompt && endPromptTextarea) {
+                                    endPromptTextarea.value = promptData.endPrompt;
+                                }
+                                showToast('Prompts imported successfully!', 'success');
+                            } catch (jsonError) {
+                                // Fallback to plain text (legacy format) - assume it's a summary prompt
+                                if (summaryPromptTextarea) {
+                                    summaryPromptTextarea.value = content;
+                                    showToast('Summary prompt imported successfully!', 'success');
+                                }
                             }
                         } catch (error) {
-                            console.error('Error importing prompt:', error);
-                            showToast('Error importing prompt: ' + error.message, 'error');
+                            console.error('Error importing prompts:', error);
+                            showToast('Error importing prompts: ' + error.message, 'error');
                         }
                     };
                     reader.readAsText(file);
@@ -3117,9 +3204,10 @@ Update previous interview notes while maintaining consistency in evaluation crit
                 if (savePromptBtn) {
                     savePromptBtn.addEventListener('click', () => {
                         const summaryPromptTextarea = document.getElementById('summaryPrompt');
-                        if (summaryPromptTextarea) {
-                            summaryPromptManager.savePrompt(summaryPromptTextarea.value);
-                        }
+                        const endPromptTextarea = document.getElementById('endPrompt');
+                        const summaryPrompt = summaryPromptTextarea ? summaryPromptTextarea.value : '';
+                        const endPrompt = endPromptTextarea ? endPromptTextarea.value : '';
+                        summaryPromptManager.savePrompt(summaryPrompt, endPrompt);
                     });
                 }
 
@@ -3494,6 +3582,56 @@ Update previous interview notes while maintaining consistency in evaluation crit
                 });
 
                 stopBtn.addEventListener('click', () => {
+                    // Set a flag to indicate we're waiting for final summary
+                    window.waitingForFinalSummary = true;
+                    let finalSummaryTimeout;
+                    
+                    // Trigger end prompt generation before stopping
+                    triggerEndPrompt();
+                    
+                    // Set up a listener for the final summary
+                    const finalSummaryHandler = (event) => {
+                        if (event.detail.type === 'summary' && window.waitingForFinalSummary) {
+                            clearTimeout(finalSummaryTimeout);
+                            window.waitingForFinalSummary = false;
+                            document.removeEventListener('summary', finalSummaryHandler);
+                            
+                            // Force close the WebSocket now that we received the final summary
+                            if (recorder && typeof recorder.forceCloseWebSocket === 'function') {
+                                recorder.forceCloseWebSocket();
+                            }
+                            
+                            // Now actually stop the recording
+                            stopRecordingComplete();
+                            showToast('Recording stopped with final summary!', 'success');
+                        }
+                    };
+                    
+                    document.addEventListener('summary', finalSummaryHandler);
+                    
+                    // Fallback timeout in case final summary doesn't arrive
+                    finalSummaryTimeout = setTimeout(() => {
+                        if (window.waitingForFinalSummary) {
+                            window.waitingForFinalSummary = false;
+                            document.removeEventListener('summary', finalSummaryHandler);
+                            
+                            // Force close the WebSocket on timeout
+                            if (recorder && typeof recorder.forceCloseWebSocket === 'function') {
+                                recorder.forceCloseWebSocket();
+                            }
+                            
+                            stopRecordingComplete();
+                            showToast('Recording stopped (final summary may still be generating)', 'info');
+                        }
+                    }, 10000); // Wait up to 10 seconds for final summary
+                    
+                    // Immediate UI feedback
+                    showToast('Stopping recording and generating final summary...', 'info');
+                    stopBtn.disabled = true; // Prevent multiple clicks
+                });
+
+                // Function to complete the recording stop process
+                function stopRecordingComplete() {
                     recorder.stopRecording();
                     connectionStatus.updateStatus('disconnected');
                     
@@ -3524,9 +3662,7 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
-                    
-                    showToast('Recording stopped and session saved!', 'info');
-                });
+                }
 
                 clearBtn.addEventListener('click', () => {
                     interimTranscriptOutput.value = '';
@@ -3884,6 +4020,41 @@ Update previous interview notes while maintaining consistency in evaluation crit
                 window.getCurrentSummaryPrompt = function() {
                     return summaryPromptManager.getCurrentPrompt();
                 };
+
+                // Global function to get current end prompt (called by stop button)
+                window.getCurrentEndPrompt = function() {
+                    return summaryPromptManager.getCurrentEndPrompt();
+                };
+
+                // Function to trigger end prompt summary generation
+                function triggerEndPrompt() {
+                    // Check if we have a final transcript and websocket connection
+                    const finalTranscript = finalTranscriptOutput.value.trim();
+                    if (!finalTranscript || !recorder.socket || recorder.socket.readyState !== WebSocket.OPEN) {
+                        console.log('No transcript or WebSocket connection available for end prompt');
+                        return;
+                    }
+
+                    // Get the current end prompt
+                    const endPrompt = summaryPromptManager.getCurrentEndPrompt();
+                    
+                    // Send end prompt message to backend
+                    const endPromptMessage = {
+                        type: "end_prompt",
+                        endPrompt: endPrompt,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    console.log('Sending end prompt to backend:', endPromptMessage);
+                    
+                    try {
+                        recorder.socket.send(JSON.stringify(endPromptMessage));
+                        showToast('Generating conclusion with end prompt...', 'info', 3000);
+                    } catch (error) {
+                        console.error('Error sending end prompt:', error);
+                        showToast('Error sending end prompt: ' + error.message, 'error');
+                    }
+                }
 
                 // Test function to debug language codes
                 window.testLanguageCodes = () => {

@@ -622,10 +622,23 @@
                 this.combinedStream = null;
             }
             
-            // Close WebSocket
-            if (this.socket) {
-                this.socket.close();
-                this.socket = null;
+            // Don't immediately close WebSocket if we're waiting for final summary
+            if (window.waitingForFinalSummary) {
+                console.log("Keeping WebSocket open for final summary");
+                // Set a timeout to close the WebSocket if final summary takes too long
+                setTimeout(() => {
+                    if (this.socket) {
+                        console.log("Closing WebSocket after final summary timeout");
+                        this.socket.close();
+                        this.socket = null;
+                    }
+                }, 15000); // 15 seconds max wait
+            } else {
+                // Close WebSocket immediately if not waiting for final summary
+                if (this.socket) {
+                    this.socket.close();
+                    this.socket = null;
+                }
             }
             
             // Reset references
@@ -634,6 +647,15 @@
             this.mediaRecorder = null;
             
             console.log("Google Cloud Speech-to-Text live audio recording stopped");
+        }
+
+        // Method to force close WebSocket (called after final summary is received)
+        forceCloseWebSocket() {
+            if (this.socket) {
+                console.log("Force closing WebSocket after final summary received");
+                this.socket.close();
+                this.socket = null;
+            }
         }
 
         // Get current recording state
