@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	speech "cloud.google.com/go/speech/apiv1"
@@ -1111,6 +1112,10 @@ If this is an update to an existing summary, maintain the structure and content 
 		}
 	}()
 
+	// Channel to coordinate final summary completion before closing
+	finalSummaryDone := make(chan struct{})
+	var finalSummaryInProgress int32 // atomic counter
+
 	// Main loop to read from client and send audio to Speech-to-Text
 	audioChunkCount := 0
 	for {
@@ -1120,6 +1125,17 @@ If this is an update to an existing summary, maintain the structure and content 
 				logger.Error("Unexpected WebSocket error", "error", err)
 			} else {
 				logger.Info("WebSocket connection closed by client")
+				
+				// If final summary is in progress, wait for it to complete
+				if atomic.LoadInt32(&finalSummaryInProgress) > 0 {
+					logger.Info("Waiting for final summary to complete before closing connection")
+					select {
+					case <-finalSummaryDone:
+						logger.Info("Final summary completed, proceeding with connection closure")
+					case <-time.After(35 * time.Second): // Slightly longer than the summary timeout
+						logger.Warn("Timeout waiting for final summary, proceeding with connection closure")
+					}
+				}
 			}
 			// Cancel context when WebSocket closes to stop all related goroutines
 			cancel()
@@ -1218,7 +1234,18 @@ If this is an update to an existing summary, maintain the structure and content 
 
 				// Generate final summary with end prompt asynchronously
 				if projectID != "" && location != "" {
+					// Mark that final summary generation is starting
+					atomic.AddInt32(&finalSummaryInProgress, 1)
 					go func() {
+						defer func() {
+							// Mark final summary as complete and signal completion
+							atomic.AddInt32(&finalSummaryInProgress, -1)
+							select {
+							case finalSummaryDone <- struct{}{}:
+							default: // Non-blocking send
+							}
+						}()
+						
 						// Create a new context with timeout for the end prompt generation
 						// This prevents cancellation when WebSocket closes
 						endPromptCtx, endPromptCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1271,6 +1298,9 @@ If this is an update to an existing summary, maintain the structure and content 
 							defer mu.Unlock()
 							
 							if conn != nil {
+								// Set a write deadline to prevent blocking on a dead connection
+								conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+								
 								logger.Info("Sending final summary to client",
 									"summaryLength", len(summary),
 									"connectionState", "open")
@@ -1283,6 +1313,9 @@ If this is an update to an existing summary, maintain the structure and content 
 									logger.Info("Final summary sent to client successfully",
 										"summaryLength", len(summary))
 								}
+								
+								// Clear the write deadline
+								conn.SetWriteDeadline(time.Time{})
 							} else {
 								logger.Warn("WebSocket connection is nil, final summary generated but not sent",
 									"summaryLength", len(summary))
