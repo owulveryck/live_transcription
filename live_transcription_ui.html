@@ -1572,6 +1572,95 @@
             font-size: 0.6rem;
             color: var(--text-primary);
         }
+
+        /* Navigation Tabs */
+        .nav-tabs-container {
+            margin-bottom: var(--space-6);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: var(--space-2);
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: var(--space-3) var(--space-4);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+            position: relative;
+            min-width: fit-content;
+        }
+
+        .nav-tab:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .nav-tab.active {
+            background: var(--primary-500);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-tab.active:hover {
+            background: var(--primary-600);
+        }
+
+        .nav-tab svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            position: relative;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeInUp var(--transition-normal) ease-out;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-wrap: wrap;
+                gap: var(--space-1);
+            }
+            
+            .nav-tab {
+                padding: var(--space-2) var(--space-3);
+                font-size: 0.8rem;
+                min-width: auto;
+                flex: 1;
+                justify-content: center;
+            }
+            
+            .nav-tab svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1658,77 +1747,251 @@
             </div>
         </div>
 
-        <div class="control-panel">
-            <!-- Audio Configuration Section -->
-            <div class="control-section">
-                <h3>
-                    <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs-container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="audio-config">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M8 3a5 5 0 0 0-5 5v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a6 6 0 1 1 12 0v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V8a5 5 0 0 0-5-5z"/>
                     </svg>
                     Audio Configuration
-                </h3>
-                <div class="control-row">
-                    <div class="form-group">
-                        <label class="form-label">Recording Mode</label>
-                        <div class="recording-mode-options" role="radiogroup" aria-labelledby="recording-mode-label">
-                            <div class="mode-option">
-                                <input type="radio" id="microphoneMode" name="recordingMode" value="microphone" checked aria-describedby="microphone-desc">
-                                <label for="microphoneMode">Microphone Only</label>
+                </button>
+                <button class="nav-tab" data-tab="export-import">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                    Export/Import
+                </button>
+                <button class="nav-tab" data-tab="session-management">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                    </svg>
+                    Session Management
+                </button>
+                <button class="nav-tab" data-tab="advanced-config">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                    </svg>
+                    Advanced Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content Panels -->
+        <div class="tab-content">
+            <!-- Audio Configuration Tab -->
+            <div class="tab-panel active" id="audio-config-panel">
+                <div class="control-panel">
+                    <!-- Audio Configuration Section -->
+                    <div class="control-section">
+                        <h3>
+                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 3a5 5 0 0 0-5 5v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a6 6 0 1 1 12 0v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V8a5 5 0 0 0-5-5z"/>
+                            </svg>
+                            Audio Configuration
+                        </h3>
+                        <div class="control-row">
+                            <div class="form-group">
+                                <label class="form-label">Recording Mode</label>
+                                <div class="recording-mode-options" role="radiogroup" aria-labelledby="recording-mode-label">
+                                    <div class="mode-option">
+                                        <input type="radio" id="microphoneMode" name="recordingMode" value="microphone" checked aria-describedby="microphone-desc">
+                                        <label for="microphoneMode">Microphone Only</label>
+                                    </div>
+                                    <div class="mode-option">
+                                        <input type="radio" id="systemMode" name="recordingMode" value="system" aria-describedby="system-desc">
+                                        <label for="systemMode">System Audio Only</label>
+                                    </div>
+                                    <div class="mode-option">
+                                        <input type="radio" id="bothMode" name="recordingMode" value="both" aria-describedby="both-desc">
+                                        <label for="bothMode">Microphone + System Audio</label>
+                                    </div>
+                                </div>
+                                <div id="microphone-desc" class="sr-only">Record audio from your microphone only</div>
+                                <div id="system-desc" class="sr-only">Record system audio only (requires browser support)</div>
+                                <div id="both-desc" class="sr-only">Record both microphone and system audio simultaneously</div>
                             </div>
-                            <div class="mode-option">
-                                <input type="radio" id="systemMode" name="recordingMode" value="system" aria-describedby="system-desc">
-                                <label for="systemMode">System Audio Only</label>
-                            </div>
-                            <div class="mode-option">
-                                <input type="radio" id="bothMode" name="recordingMode" value="both" aria-describedby="both-desc">
-                                <label for="bothMode">Microphone + System Audio</label>
+                            
+                            <div class="form-group audio-source-selector">
+                                <label for="audioSource" class="form-label">Input Source</label>
+                                <select id="audioSource" class="form-control" aria-describedby="audio-source-hint">
+                                    <option value="default" selected>Default Microphone</option>
+                                </select>
+                                <div id="audio-source-hint" class="form-hint">Select the audio input device to use for recording</div>
                             </div>
                         </div>
-                        <div id="microphone-desc" class="sr-only">Record audio from your microphone only</div>
-                        <div id="system-desc" class="sr-only">Record system audio only (requires browser support)</div>
-                        <div id="both-desc" class="sr-only">Record both microphone and system audio simultaneously</div>
                     </div>
-                    
-                    <div class="form-group audio-source-selector">
-                        <label for="audioSource" class="form-label">Input Source</label>
-                        <select id="audioSource" class="form-control" aria-describedby="audio-source-hint">
-                            <option value="default" selected>Default Microphone</option>
-                        </select>
-                        <div id="audio-source-hint" class="form-hint">Select the audio input device to use for recording</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Language Settings Section -->
-            <div class="control-section">
-                <h3>
-                    <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
-                        <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
-                    </svg>
-                    Language Settings
-                </h3>
-                <div class="control-row">
-                    <div class="form-group" style="flex: 1;">
-                        <label for="languageCodes" class="form-label">Language Codes (comma-separated)</label>
-                        <input type="text" id="languageCodes" class="form-control" placeholder="e.g., fr-FR,en-US" value="fr-FR,en-US">
-                        <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Advanced Recognition</label>
-                        <button type="button" id="toggleAdvancedConfigBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-4); font-size: 0.875rem;">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                    <!-- Language Settings Section -->
+                    <div class="control-section">
+                        <h3>
+                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                                <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
                             </svg>
-                            Show Advanced Configuration
-                        </button>
+                            Language Settings
+                        </h3>
+                        <div class="control-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="languageCodes" class="form-label">Language Codes (comma-separated)</label>
+                                <input type="text" id="languageCodes" class="form-control" placeholder="e.g., fr-FR,en-US" value="fr-FR,en-US">
+                                <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Controls Section -->
+                    <div class="control-section">
+                        <h3>
+                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
+                            </svg>
+                            Recording Controls
+                        </h3>
+                        
+                        <!-- Connection Status -->
+                        <div class="connection-status" style="margin-bottom: var(--space-4);">
+                            <div class="connection-dot" id="connectionDot"></div>
+                            <span id="connectionText">Disconnected</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="startBtn" class="btn btn-primary" aria-describedby="start-btn-desc">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
+                                    <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
+                                </svg>
+                                <span class="btn-text">Start Live Transcription</span>
+                                <span class="btn-spinner hidden">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
+                                        <path opacity="0.3" d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                        <path d="M8 1a7 7 0 0 1 7 7h-2a5 5 0 0 0-5-5V1z"/>
+                                    </svg>
+                                </span>
+                            </button>
+                            
+                            <button id="stopBtn" class="btn btn-danger" disabled aria-describedby="stop-btn-desc">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
+                                </svg>
+                                Stop Transcription
+                            </button>
+                            
+                            <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled aria-describedby="clear-btn-desc">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6zM5 4V3h6v1H5zm0 2h6v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6z"/>
+                                    <path d="M8 7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6A.5.5 0 0 1 8 7z"/>
+                                </svg>
+                                Clear Transcripts
+                            </button>
+                            
+                            <button id="testLangBtn" class="btn btn-secondary" onclick="testLanguageCodes()">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                                    <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
+                                </svg>
+                                Test Language Codes
+                            </button>
+                        </div>
+                        <div class="sr-only">
+                            <div id="start-btn-desc">Begin recording and transcribing audio in real-time</div>
+                            <div id="stop-btn-desc">Stop the current transcription session</div>
+                            <div id="clear-btn-desc">Remove all transcripts and summaries from the interface</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Advanced Recognition Documentation -->
-            <div id="advancedDocumentationSection" class="control-section" style="display: none;">
-                <h3>📚 Advanced Recognition Documentation</h3>
+            <!-- Export/Import Tab -->
+            <div class="tab-panel" id="export-import-panel">
+                <div class="control-panel">
+                    <div class="control-section">
+                        <h3>
+                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Configuration Export/Import
+                        </h3>
+                        <div class="control-row">
+                            <div class="form-group">
+                                <label class="form-label">Export/Import Settings</label>
+                                <div style="display: flex; gap: var(--space-3);">
+                                    <button type="button" id="exportConfigBtn" class="btn btn-outline">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                        </svg>
+                                        Export Settings
+                                    </button>
+                                    <label for="importConfigFile" class="btn btn-outline" style="margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2);">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                        </svg>
+                                        Import Settings
+                                        <input type="file" id="importConfigFile" accept=".json" style="display: none;">
+                                    </label>
+                                </div>
+                                <p class="form-hint">Export current language, phrase sets, and custom classes configuration to a JSON file, or import from a previously saved configuration.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Management Tab -->
+            <div class="tab-panel" id="session-management-panel">
+                <div class="control-panel">
+                    <div class="control-section">
+                        <h3>
+                            <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                            </svg>
+                            Session Management
+                        </h3>
+                        <div class="control-row">
+                            <div class="form-group">
+                                <label class="form-label">Export Session Content</label>
+                                <div style="display: flex; gap: var(--space-3);">
+                                    <button type="button" onclick="exportToMarkdown()" class="btn btn-outline">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                                        </svg>
+                                        Export to Markdown
+                                    </button>
+                                    <button id="copyFinalTranscriptBtn" class="btn btn-outline" onclick="copyFinalTranscriptToClipboard()" disabled>
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
+                                            <path fill-rule="evenodd" d="M2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
+                                        </svg>
+                                        Copy Transcript
+                                    </button>
+                                    <button id="copySummaryBtn" class="btn btn-outline" onclick="copySummaryToClipboard()" disabled>
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
+                                            <path fill-rule="evenodd" d="M2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2z"/>
+                                        </svg>
+                                        Copy Summary
+                                    </button>
+                                </div>
+                                <p class="form-hint">Export the current transcript and summary as formatted markdown text, ready to paste into any chat assistant for further analysis.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Configuration Tab -->
+            <div class="tab-panel" id="advanced-config-panel">
+                <div class="control-panel">
+
+                    <!-- Advanced Recognition Documentation -->
+                    <div id="advancedDocumentationSection" class="control-section">
+                        <h3>📚 Advanced Recognition Documentation</h3>
                 <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
                     
                     <h4 style="margin-top: 0; color: var(--gray-700);">🎯 Phrase Sets</h4>
@@ -1817,149 +2080,51 @@
                 </div>
             </div>
 
-            <!-- Advanced Recognition Section -->
-            <div id="advancedRecognitionSection" class="control-section" style="display: none;">
-                <h3>Advanced Recognition (Phrase Sets & Classes)</h3>
-                
-                <!-- Phrase Sets Configuration -->
-                <div class="control-row" style="margin-bottom: var(--space-4);">
-                    <div class="form-group" style="flex: 1;">
-                        <label for="phraseSets" class="form-label">Phrase Sets (one per line: phrase:boost)</label>
-                        <textarea id="phraseSets" class="form-control" rows="4" placeholder="e.g.&#10;OpenAI:15&#10;machine learning:10&#10;artificial intelligence:12" style="resize: vertical; min-height: 100px;"></textarea>
-                        <p class="form-hint">Format: "phrase:boost" (boost 0-20, higher = more likely recognition)</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="defaultBoost" class="form-label">Default Boost</label>
-                        <input type="number" id="defaultBoost" class="form-control" min="0" max="20" step="0.5" value="10" style="max-width: 100px;">
-                        <p class="form-hint">Default boost for phrases without explicit boost values</p>
-                    </div>
-                </div>
-
-                <!-- Multiple Custom Classes Configuration -->
-                <div id="customClassesContainer" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
-                        <label class="form-label" style="margin: 0; font-size: 1rem; font-weight: 600;">Custom Classes</label>
-                        <button type="button" id="addCustomClassBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-3); font-size: 0.875rem;">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                            </svg>
-                            Add Custom Class
-                        </button>
-                    </div>
-                    <div id="customClassesList" style="margin-bottom: var(--space-4);">
-                        <!-- Custom classes will be dynamically added here -->
-                    </div>
-                    <p class="form-hint">Create multiple custom vocabulary sets, each with their own boost values. Each class groups related terms (e.g., "AI Companies", "Energy Companies", "Medical Terms").</p>
-                </div>
-
-                <!-- Toggle Button for Custom Classes -->
-                <div style="margin-bottom: var(--space-4);">
-                    <button type="button" id="toggleCustomClassesBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-3); font-size: 0.875rem;">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
-                        </svg>
-                        Show Custom Classes
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Configuration Management Section -->
-            <div class="control-section">
-                <h3>Configuration Management</h3>
-                <div class="control-row">
-                    <div class="form-group">
-                        <label class="form-label">Export/Import Settings</label>
-                        <div style="display: flex; gap: var(--space-3);">
-                            <button type="button" id="exportConfigBtn" class="btn btn-outline">
-                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Export Settings
-                            </button>
-                            <label for="importConfigFile" class="btn btn-outline" style="margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2);">
-                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
-                                </svg>
-                                Import Settings
-                                <input type="file" id="importConfigFile" accept=".json" style="display: none;">
-                            </label>
+                    <!-- Advanced Recognition Section -->
+                    <div id="advancedRecognitionSection" class="control-section">
+                        <h3>Advanced Recognition (Phrase Sets & Classes)</h3>
+                        
+                        <!-- Phrase Sets Configuration -->
+                        <div class="control-row" style="margin-bottom: var(--space-4);">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="phraseSets" class="form-label">Phrase Sets (one per line: phrase:boost)</label>
+                                <textarea id="phraseSets" class="form-control" rows="4" placeholder="e.g.&#10;OpenAI:15&#10;machine learning:10&#10;artificial intelligence:12" style="resize: vertical; min-height: 100px;"></textarea>
+                                <p class="form-hint">Format: "phrase:boost" (boost 0-20, higher = more likely recognition)</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="defaultBoost" class="form-label">Default Boost</label>
+                                <input type="number" id="defaultBoost" class="form-control" min="0" max="20" step="0.5" value="10" style="max-width: 100px;">
+                                <p class="form-hint">Default boost for phrases without explicit boost values</p>
+                            </div>
                         </div>
-                        <p class="form-hint">Export current language, phrase sets, and custom classes configuration to a JSON file, or import from a previously saved configuration.</p>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Session Management</label>
-                        <div style="display: flex; gap: var(--space-3);">
-                            <button type="button" onclick="exportToMarkdown()" class="btn btn-outline">
+
+                        <!-- Multiple Custom Classes Configuration -->
+                        <div id="customClassesContainer" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                                <label class="form-label" style="margin: 0; font-size: 1rem; font-weight: 600;">Custom Classes</label>
+                                <button type="button" id="addCustomClassBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-3); font-size: 0.875rem;">
+                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                                    </svg>
+                                    Add Custom Class
+                                </button>
+                            </div>
+                            <div id="customClassesList" style="margin-bottom: var(--space-4);">
+                                <!-- Custom classes will be dynamically added here -->
+                            </div>
+                            <p class="form-hint">Create multiple custom vocabulary sets, each with their own boost values. Each class groups related terms (e.g., "AI Companies", "Energy Companies", "Medical Terms").</p>
+                        </div>
+
+                        <!-- Toggle Button for Custom Classes -->
+                        <div style="margin-bottom: var(--space-4);">
+                            <button type="button" id="toggleCustomClassesBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-3); font-size: 0.875rem;">
                                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
                                 </svg>
-                                Export to Markdown
+                                Show Custom Classes
                             </button>
                         </div>
-                        <p class="form-hint">Export the current transcript and summary as formatted markdown text, ready to paste into any chat assistant for further analysis.</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Recording Controls Section -->
-            <div class="control-section">
-                <h3>
-                    <svg class="section-icon" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
-                        <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
-                    </svg>
-                    Recording Controls
-                </h3>
-                
-                <!-- Connection Status -->
-                <div class="connection-status" style="margin-bottom: var(--space-4);">
-                    <div class="connection-dot" id="connectionDot"></div>
-                    <span id="connectionText">Disconnected</span>
-                </div>
-                <div class="action-buttons">
-                    <button id="startBtn" class="btn btn-primary" aria-describedby="start-btn-desc">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M8 11a3 3 0 0 0 3-3V4a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z"/>
-                            <path d="M14 10.5a.5.5 0 0 1-1 0A5 5 0 0 0 8 5.5a.5.5 0 0 1-1 0 6 6 0 0 1 12 0v.5z"/>
-                        </svg>
-                        <span class="btn-text">Start Live Transcription</span>
-                        <span class="btn-spinner hidden">
-                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="animate-spin">
-                                <path opacity="0.3" d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                                <path d="M8 1a7 7 0 0 1 7 7h-2a5 5 0 0 0-5-5V1z"/>
-                            </svg>
-                        </span>
-                    </button>
-                    
-                    <button id="stopBtn" class="btn btn-danger" disabled aria-describedby="stop-btn-desc">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
-                        </svg>
-                        Stop Transcription
-                    </button>
-                    
-                    <button id="clearBtn" class="btn btn-outline" onclick="clearTranscripts()" disabled aria-describedby="clear-btn-desc">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6zM5 4V3h6v1H5zm0 2h6v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6z"/>
-                            <path d="M8 7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6A.5.5 0 0 1 8 7z"/>
-                        </svg>
-                        Clear Transcripts
-                    </button>
-                    
-                    <button id="testLangBtn" class="btn btn-secondary" onclick="testLanguageCodes()">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
-                            <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.645z"/>
-                        </svg>
-                        Test Language Codes
-                    </button>
-                </div>
-                <div class="sr-only">
-                    <div id="start-btn-desc">Begin recording and transcribing audio in real-time</div>
-                    <div id="stop-btn-desc">Stop the current transcription session</div>
-                    <div id="clear-btn-desc">Remove all transcripts and summaries from the interface</div>
                 </div>
             </div>
         </div>
@@ -2564,10 +2729,43 @@
                 }
             };
             
+            // Tab navigation functionality
+            function initTabs() {
+                const navTabs = document.querySelectorAll('.nav-tab');
+                const tabPanels = document.querySelectorAll('.tab-panel');
+                
+                navTabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const targetTab = tab.dataset.tab;
+                        
+                        // Remove active class from all tabs and panels
+                        navTabs.forEach(t => t.classList.remove('active'));
+                        tabPanels.forEach(p => p.classList.remove('active'));
+                        
+                        // Add active class to clicked tab and corresponding panel
+                        tab.classList.add('active');
+                        document.getElementById(`${targetTab}-panel`).classList.add('active');
+                        
+                        // Show toast for tab switch
+                        const tabName = tab.textContent.trim();
+                        showToast(`Switched to ${tabName}`, 'info', 2000);
+                    });
+                    
+                    // Keyboard support for tabs
+                    tab.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            tab.click();
+                        }
+                    });
+                });
+            }
+
             // Initialize i18n and theme when the page loads
             document.addEventListener('DOMContentLoaded', () => {
                 i18n.init();
                 initTheme();
+                initTabs();
                 
                 // Initialize connection status
                 connectionStatus.updateStatus('disconnected');
@@ -2600,7 +2798,7 @@
                 
                 // Show welcome message
                 setTimeout(() => {
-                    showToast('Press ? to view keyboard shortcuts', 'info', 5000);
+                    showToast('Welcome! Use the tabs above to organize your settings.', 'info', 5000);
                 }, 2000);
             });
         </script>
@@ -2616,33 +2814,7 @@
             document.addEventListener('DOMContentLoaded', () => {
                 recorder.populateAudioDevices();
 
-                // Set up advanced configuration toggle
-                const toggleAdvancedConfigBtn = document.getElementById('toggleAdvancedConfigBtn');
-                const advancedDocumentationSection = document.getElementById('advancedDocumentationSection');
-                const advancedRecognitionSection = document.getElementById('advancedRecognitionSection');
-
-                toggleAdvancedConfigBtn.addEventListener('click', () => {
-                    advancedConfigVisible = !advancedConfigVisible;
-                    if (advancedConfigVisible) {
-                        advancedDocumentationSection.style.display = 'block';
-                        advancedRecognitionSection.style.display = 'block';
-                        toggleAdvancedConfigBtn.innerHTML = `
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-                            </svg>
-                            Hide Advanced Configuration
-                        `;
-                    } else {
-                        advancedDocumentationSection.style.display = 'none';
-                        advancedRecognitionSection.style.display = 'none';
-                        toggleAdvancedConfigBtn.innerHTML = `
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-                            </svg>
-                            Show Advanced Configuration
-                        `;
-                    }
-                });
+                // Advanced configuration is now in its own tab, no need for toggle
 
                 // Set up custom classes functionality
                 const addCustomClassBtn = document.getElementById('addCustomClassBtn');
