@@ -1133,6 +1133,286 @@
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <script src="live_audio_recorder.js"></script>
         <script>
+            // Internationalization system
+            const i18n = {
+                currentLanguage: 'en',
+                translations: {
+                    en: {
+                        // Page title and headers
+                        'page_title': 'Live Audio Transcription',
+                        'audio_configuration': 'Audio Configuration',
+                        'language_settings': 'Language Settings',
+                        'advanced_recognition': 'Advanced Recognition',
+                        'configuration_management': 'Configuration Management',
+                        'recording_controls': 'Recording Controls',
+                        
+                        // Recording modes
+                        'recording_mode': 'Recording Mode',
+                        'microphone_only': 'Microphone Only',
+                        'system_audio_only': 'System Audio Only',
+                        'microphone_system_audio': 'Microphone + System Audio',
+                        
+                        // Input and labels
+                        'input_source': 'Input Source',
+                        'default_microphone': 'Default Microphone',
+                        'language_codes': 'Language Codes (comma-separated)',
+                        'language_codes_placeholder': 'e.g., fr-FR,en-US',
+                        'language_codes_hint': 'Comma-separated list of BCP-47 language codes for detection',
+                        
+                        // Advanced settings
+                        'show_advanced_configuration': 'Show Advanced Configuration',
+                        'hide_advanced_configuration': 'Hide Advanced Configuration',
+                        'phrase_sets': 'Phrase Sets (one per line: phrase:boost)',
+                        'phrase_sets_placeholder': 'e.g.\nOpenAI:15\nmachine learning:10\nartificial intelligence:12',
+                        'phrase_sets_hint': 'Format: "phrase:boost" (boost 0-20, higher = more likely recognition)',
+                        'default_boost': 'Default Boost',
+                        'default_boost_hint': 'Default boost for phrases without explicit boost values',
+                        'custom_classes': 'Custom Classes',
+                        'add_custom_class': 'Add Custom Class',
+                        'show_custom_classes': 'Show Custom Classes',
+                        'hide_custom_classes': 'Hide Custom Classes',
+                        'class_name': 'Class Name',
+                        'class_name_placeholder': 'e.g., AI Companies',
+                        'boost': 'Boost',
+                        'items_one_per_line': 'Items (one per line)',
+                        'items_placeholder': 'OpenAI\nAnthropic\nGoogle\nMicrosoft\nClaude\nChatGPT',
+                        'items_hint': 'Enter vocabulary items for this class, one per line',
+                        
+                        // Configuration
+                        'export_import_settings': 'Export/Import Settings',
+                        'export_settings': 'Export Settings',
+                        'import_settings': 'Import Settings',
+                        'export_import_hint': 'Export current language, phrase sets, and custom classes configuration to a JSON file, or import from a previously saved configuration.',
+                        
+                        // Buttons
+                        'start_live_transcription': 'Start Live Transcription',
+                        'stop_transcription': 'Stop Transcription',
+                        'clear_transcripts': 'Clear Transcripts',
+                        'copy_transcript': 'Copy Transcript',
+                        'copy_summary': 'Copy Summary',
+                        
+                        // Status and content
+                        'live_transcription_in_progress': 'Live transcription in progress...',
+                        'interim_transcript': 'Interim Transcript',
+                        'interim_transcript_placeholder': 'Interim transcription will appear here...',
+                        'final_transcript': 'Final Transcript',
+                        'final_transcript_placeholder': 'Final transcription will be appended here...',
+                        'summary': 'Summary',
+                        'summary_placeholder': 'Summary will appear here...',
+                        
+                        // Statistics
+                        'transcripts': 'Transcripts',
+                        'words': 'Words',
+                        'session_time': 'Session Time',
+                        
+                        // Messages
+                        'final_transcript_copied': 'Final transcript copied to clipboard!',
+                        'summary_copied': 'Summary (markdown) copied to clipboard!',
+                        'failed_copy_transcript': 'Failed to copy final transcript:',
+                        'failed_copy_summary': 'Failed to copy summary to clipboard',
+                        'no_summary_to_copy': 'No summary available to copy',
+                        'error_starting_transcription': 'Error starting transcription: ',
+                        'recorder_error': 'Recorder error: '
+                    },
+                    fr: {
+                        // Page title and headers
+                        'page_title': 'Transcription Audio en Direct',
+                        'audio_configuration': 'Configuration Audio',
+                        'language_settings': 'Paramètres de Langue',
+                        'advanced_recognition': 'Reconnaissance Avancée',
+                        'configuration_management': 'Gestion de Configuration',
+                        'recording_controls': 'Contrôles d\'Enregistrement',
+                        
+                        // Recording modes
+                        'recording_mode': 'Mode d\'Enregistrement',
+                        'microphone_only': 'Microphone Uniquement',
+                        'system_audio_only': 'Audio Système Uniquement',
+                        'microphone_system_audio': 'Microphone + Audio Système',
+                        
+                        // Input and labels
+                        'input_source': 'Source d\'Entrée',
+                        'default_microphone': 'Microphone par Défaut',
+                        'language_codes': 'Codes de Langue (séparés par des virgules)',
+                        'language_codes_placeholder': 'ex: fr-FR,en-US',
+                        'language_codes_hint': 'Liste de codes de langue BCP-47 séparés par des virgules pour la détection',
+                        
+                        // Advanced settings
+                        'show_advanced_configuration': 'Afficher la Configuration Avancée',
+                        'hide_advanced_configuration': 'Masquer la Configuration Avancée',
+                        'phrase_sets': 'Ensembles de Phrases (une par ligne: phrase:boost)',
+                        'phrase_sets_placeholder': 'ex:\nOpenAI:15\napprentissage automatique:10\nintelligence artificielle:12',
+                        'phrase_sets_hint': 'Format: "phrase:boost" (boost 0-20, plus élevé = reconnaissance plus probable)',
+                        'default_boost': 'Boost par Défaut',
+                        'default_boost_hint': 'Boost par défaut pour les phrases sans valeurs de boost explicites',
+                        'custom_classes': 'Classes Personnalisées',
+                        'add_custom_class': 'Ajouter une Classe Personnalisée',
+                        'show_custom_classes': 'Afficher les Classes Personnalisées',
+                        'hide_custom_classes': 'Masquer les Classes Personnalisées',
+                        'class_name': 'Nom de la Classe',
+                        'class_name_placeholder': 'ex: Entreprises IA',
+                        'boost': 'Boost',
+                        'items_one_per_line': 'Éléments (un par ligne)',
+                        'items_placeholder': 'OpenAI\nAnthropic\nGoogle\nMicrosoft\nClaude\nChatGPT',
+                        'items_hint': 'Entrez les éléments de vocabulaire pour cette classe, un par ligne',
+                        
+                        // Configuration
+                        'export_import_settings': 'Exporter/Importer les Paramètres',
+                        'export_settings': 'Exporter les Paramètres',
+                        'import_settings': 'Importer les Paramètres',
+                        'export_import_hint': 'Exportez la configuration actuelle de langue, ensembles de phrases et classes personnalisées vers un fichier JSON, ou importez depuis une configuration précédemment sauvegardée.',
+                        
+                        // Buttons
+                        'start_live_transcription': 'Démarrer la Transcription en Direct',
+                        'stop_transcription': 'Arrêter la Transcription',
+                        'clear_transcripts': 'Effacer les Transcriptions',
+                        'copy_transcript': 'Copier la Transcription',
+                        'copy_summary': 'Copier le Résumé',
+                        
+                        // Status and content
+                        'live_transcription_in_progress': 'Transcription en direct en cours...',
+                        'interim_transcript': 'Transcription Intermédiaire',
+                        'interim_transcript_placeholder': 'La transcription intermédiaire apparaîtra ici...',
+                        'final_transcript': 'Transcription Finale',
+                        'final_transcript_placeholder': 'La transcription finale sera ajoutée ici...',
+                        'summary': 'Résumé',
+                        'summary_placeholder': 'Le résumé apparaîtra ici...',
+                        
+                        // Statistics
+                        'transcripts': 'Transcriptions',
+                        'words': 'Mots',
+                        'session_time': 'Temps de Session',
+                        
+                        // Messages
+                        'final_transcript_copied': 'Transcription finale copiée dans le presse-papiers !',
+                        'summary_copied': 'Résumé (markdown) copié dans le presse-papiers !',
+                        'failed_copy_transcript': 'Échec de la copie de la transcription finale :',
+                        'failed_copy_summary': 'Échec de la copie du résumé dans le presse-papiers',
+                        'no_summary_to_copy': 'Aucun résumé disponible à copier',
+                        'error_starting_transcription': 'Erreur lors du démarrage de la transcription : ',
+                        'recorder_error': 'Erreur d\'enregistrement : '
+                    }
+                },
+                
+                // Get browser language and set current language
+                init() {
+                    const browserLang = navigator.language || navigator.userLanguage;
+                    if (browserLang.startsWith('fr')) {
+                        this.currentLanguage = 'fr';
+                    } else {
+                        this.currentLanguage = 'en';
+                    }
+                    this.updateUI();
+                },
+                
+                // Get translated text
+                t(key) {
+                    return this.translations[this.currentLanguage][key] || this.translations['en'][key] || key;
+                },
+                
+                // Update all UI elements with translations
+                updateUI() {
+                    // Update document title
+                    document.title = this.t('page_title');
+                    
+                    // Update main heading
+                    document.querySelector('h1').textContent = this.t('page_title');
+                    
+                    // Update section headers
+                    const sections = {
+                        'Audio Configuration': 'audio_configuration',
+                        'Language Settings': 'language_settings',
+                        'Advanced Recognition (Phrase Sets & Classes)': 'advanced_recognition',
+                        'Configuration Management': 'configuration_management',
+                        'Recording Controls': 'recording_controls'
+                    };
+                    
+                    document.querySelectorAll('.control-section h3').forEach(h3 => {
+                        const englishText = h3.textContent.trim();
+                        if (sections[englishText]) {
+                            h3.textContent = this.t(sections[englishText]);
+                        }
+                    });
+                    
+                    // Update labels and form elements
+                    this.updateElement('label[for="languageCodes"]', 'language_codes');
+                    this.updateElement('#languageCodes', 'language_codes_placeholder', 'placeholder');
+                    this.updateElement('label[for="audioSource"]', 'input_source');
+                    this.updateElement('#audioSource option', 'default_microphone');
+                    
+                    // Update buttons
+                    this.updateButtonText('#startBtn .btn-text', 'start_live_transcription');
+                    this.updateElement('#stopBtn', 'stop_transcription');
+                    this.updateElement('#clearBtn', 'clear_transcripts');
+                    this.updateElement('#copyFinalTranscriptBtn', 'copy_transcript');
+                    this.updateElement('#copySummaryBtn', 'copy_summary');
+                    
+                    // Update recording mode labels
+                    this.updateElement('label[for="microphoneMode"]', 'microphone_only');
+                    this.updateElement('label[for="systemMode"]', 'system_audio_only');
+                    this.updateElement('label[for="bothMode"]', 'microphone_system_audio');
+                    
+                    // Update form labels
+                    const recordingModeLabel = document.querySelector('.recording-mode-options').previousElementSibling;
+                    if (recordingModeLabel && recordingModeLabel.classList.contains('form-label')) {
+                        recordingModeLabel.textContent = this.t('recording_mode');
+                    }
+                    
+                    // Update placeholders and hints
+                    this.updateElement('#interimTranscriptOutput', 'interim_transcript_placeholder', 'placeholder');
+                    this.updateElement('#finalTranscriptOutput', 'final_transcript_placeholder', 'placeholder');
+                    this.updateElement('#summaryOutput', 'summary_placeholder', 'data-placeholder');
+                    
+                    // Update content area headers
+                    const finalTranscriptH2 = document.querySelector('.final-transcript-container h2');
+                    if (finalTranscriptH2) finalTranscriptH2.textContent = this.t('final_transcript');
+                    
+                    const summaryH2 = document.querySelector('.summary-container h2');
+                    if (summaryH2) summaryH2.textContent = this.t('summary');
+                    
+                    const interimH3 = document.querySelector('.interim-transcript-container h3');
+                    if (interimH3) interimH3.textContent = this.t('interim_transcript');
+                    
+                    // Update statistics labels
+                    const statLabels = document.querySelectorAll('.stat-item div:last-child');
+                    if (statLabels[0]) statLabels[0].textContent = this.t('transcripts');
+                    if (statLabels[1]) statLabels[1].textContent = this.t('words');
+                    if (statLabels[2]) statLabels[2].textContent = this.t('session_time');
+                    
+                    // Update recording status
+                    const recordingStatusText = document.querySelector('#recordingStatus');
+                    if (recordingStatusText) {
+                        const statusText = recordingStatusText.childNodes[1];
+                        if (statusText && statusText.nodeType === Node.TEXT_NODE) {
+                            statusText.textContent = this.t('live_transcription_in_progress');
+                        }
+                    }
+                },
+                
+                updateElement(selector, key, attribute = 'textContent') {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        if (attribute === 'textContent') {
+                            element.textContent = this.t(key);
+                        } else {
+                            element.setAttribute(attribute, this.t(key));
+                        }
+                    }
+                },
+                
+                updateButtonText(selector, key) {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.textContent = this.t(key);
+                    }
+                }
+            };
+            
+            // Initialize i18n when the page loads
+            document.addEventListener('DOMContentLoaded', () => {
+                i18n.init();
+            });
+        
+        <script>
             const recorder = new LiveAudioRecorder();
 
             document.addEventListener('DOMContentLoaded', () => {
@@ -1410,7 +1690,7 @@
                         startSessionTimer();
                     } catch (error) {
                         console.error('Failed to start live transcription:', error);
-                        alert('Error starting transcription: ' + error.message);
+                        alert(i18n.t('error_starting_transcription') + error.message);
                         startBtn.disabled = false;
                         stopBtn.disabled = true;
                         clearBtn.disabled = true;
@@ -1516,7 +1796,7 @@
 
                 document.addEventListener('recordererror', (event) => {
                     console.error('Recorder error:', event.detail.message);
-                    alert('Recorder error: ' + event.detail.message);
+                    alert(i18n.t('recorder_error') + event.detail.message);
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
@@ -1546,9 +1826,9 @@
                 window.copyFinalTranscriptToClipboard = () => {
                     finalTranscriptOutput.select();
                     navigator.clipboard.writeText(finalTranscriptOutput.value).then(() => {
-                        alert('Final transcript copied to clipboard!');
+                        alert(i18n.t('final_transcript_copied'));
                     }).catch(err => {
-                        console.error('Failed to copy final transcript:', err);
+                        console.error(i18n.t('failed_copy_transcript'), err);
                     });
                 };
 
@@ -1557,14 +1837,14 @@
                     if (rawSummaryMarkdown) {
                         navigator.clipboard.writeText(rawSummaryMarkdown).then(() => {
                             console.log('📋 Raw markdown summary copied to clipboard');
-                            alert('Summary (markdown) copied to clipboard!');
+                            alert(i18n.t('summary_copied'));
                         }).catch(err => {
                             console.error('Failed to copy summary markdown:', err);
-                            alert('Failed to copy summary to clipboard');
+                            alert(i18n.t('failed_copy_summary'));
                         });
                     } else {
                         console.warn('⚠️ No raw markdown content available to copy');
-                        alert('No summary available to copy');
+                        alert(i18n.t('no_summary_to_copy'));
                     }
                 };
 
