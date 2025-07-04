@@ -845,14 +845,23 @@
                 <div class="control-row">
                     <div class="form-group" style="flex: 1;">
                         <label for="languageCodes" class="form-label">Language Codes (comma-separated)</label>
-                        <input type="text" id="languageCodes" class="form-control" placeholder="e.g., en-US,fr-FR,es-ES" value="en-US,fr-FR,es-ES">
+                        <input type="text" id="languageCodes" class="form-control" placeholder="e.g., fr-FR,en-US" value="fr-FR,en-US">
                         <p class="form-hint">Comma-separated list of BCP-47 language codes for detection</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Advanced Recognition</label>
+                        <button type="button" id="toggleAdvancedConfigBtn" class="btn btn-outline" style="padding: var(--space-2) var(--space-4); font-size: 0.875rem;">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                            </svg>
+                            Show Advanced Configuration
+                        </button>
                     </div>
                 </div>
             </div>
 
             <!-- Advanced Recognition Documentation -->
-            <div class="control-section">
+            <div id="advancedDocumentationSection" class="control-section" style="display: none;">
                 <h3>📚 Advanced Recognition Documentation</h3>
                 <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
                     
@@ -887,7 +896,7 @@
                         </div>
                         
                         <div style="background: var(--gray-800); color: var(--gray-100); padding: var(--space-3); border-radius: var(--radius-sm); font-family: var(--font-family-mono); font-size: 0.875rem;">
-                            <div style="color: var(--gray-400); margin-bottom: var(--space-2);">// Example: Energy Companies Class</div>
+                            <div style="color: var(--gray-400); margin-bottom: var(--space-2);">// Example: Tech Companies Class</div>
                             <div>Total</div>
                             <div>ExxonMobil</div>
                             <div>Shell</div>
@@ -943,7 +952,7 @@
             </div>
 
             <!-- Advanced Recognition Section -->
-            <div class="control-section">
+            <div id="advancedRecognitionSection" class="control-section" style="display: none;">
                 <h3>Advanced Recognition (Phrase Sets & Classes)</h3>
                 
                 <!-- Phrase Sets Configuration -->
@@ -1049,19 +1058,11 @@
                         Clear Transcripts
                     </button>
                     
-                    <button id="addKeywordsBtn" class="btn btn-secondary" onclick="addTestKeywords()" disabled aria-describedby="keywords-btn-desc">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                        </svg>
-                        Add Test Keywords
-                    </button>
                 </div>
                 <div class="sr-only">
                     <div id="start-btn-desc">Begin recording and transcribing audio in real-time</div>
                     <div id="stop-btn-desc">Stop the current transcription session</div>
                     <div id="clear-btn-desc">Remove all transcripts and summaries from the interface</div>
-                    <div id="keywords-btn-desc">Add test keywords dynamically during active transcription</div>
                 </div>
             </div>
         </div>
@@ -1137,6 +1138,35 @@
             document.addEventListener('DOMContentLoaded', () => {
                 recorder.populateAudioDevices();
 
+                // Set up advanced configuration toggle
+                const toggleAdvancedConfigBtn = document.getElementById('toggleAdvancedConfigBtn');
+                const advancedDocumentationSection = document.getElementById('advancedDocumentationSection');
+                const advancedRecognitionSection = document.getElementById('advancedRecognitionSection');
+                let advancedConfigVisible = false;
+
+                toggleAdvancedConfigBtn.addEventListener('click', () => {
+                    advancedConfigVisible = !advancedConfigVisible;
+                    if (advancedConfigVisible) {
+                        advancedDocumentationSection.style.display = 'block';
+                        advancedRecognitionSection.style.display = 'block';
+                        toggleAdvancedConfigBtn.innerHTML = `
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                            </svg>
+                            Hide Advanced Configuration
+                        `;
+                    } else {
+                        advancedDocumentationSection.style.display = 'none';
+                        advancedRecognitionSection.style.display = 'none';
+                        toggleAdvancedConfigBtn.innerHTML = `
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                            </svg>
+                            Show Advanced Configuration
+                        `;
+                    }
+                });
+
                 // Set up custom classes functionality
                 const addCustomClassBtn = document.getElementById('addCustomClassBtn');
                 let customClassCounter = 0;
@@ -1198,7 +1228,6 @@
                 const interimTranscriptOutput = document.getElementById('interimTranscriptOutput');
                 const finalTranscriptOutput = document.getElementById('finalTranscriptOutput');
                 const clearBtn = document.getElementById('clearBtn');
-                const addKeywordsBtn = document.getElementById('addKeywordsBtn');
                 const copyFinalTranscriptBtn = document.getElementById('copyFinalTranscriptBtn');
                 const copySummaryBtn = document.getElementById('copySummaryBtn');
                 const summaryOutput = document.getElementById('summaryOutput');
@@ -1354,7 +1383,7 @@
                 function addDefaultCustomClasses() {
                     // Add default examples to help users understand the feature
                     createCustomClassItem('AI Companies', 'OpenAI\nAnthropic\nGoogle\nMicrosoft\nClaude\nChatGPT', 12);
-                    createCustomClassItem('Energy Companies', 'Total\nExxonMobil\nShell\nBP\nChevron\nConocoPhillips', 10);
+                    createCustomClassItem('Tech Companies', 'Total\nExxonMobil\nShell\nBP\nChevron\nConocoPhillips', 10);
                 }
 
                 startBtn.addEventListener('click', async () => {
@@ -1375,7 +1404,6 @@
                         startBtn.disabled = true;
                         stopBtn.disabled = false;
                         clearBtn.disabled = false;
-                        addKeywordsBtn.disabled = false;
                         recordingStatusDiv.classList.remove('hidden');
                         audioVisualizerDiv.classList.remove('hidden');
                         statsContainer.style.display = 'flex';
@@ -1386,7 +1414,6 @@
                         startBtn.disabled = false;
                         stopBtn.disabled = true;
                         clearBtn.disabled = true;
-                        addKeywordsBtn.disabled = true;
                         recordingStatusDiv.classList.add('hidden');
                         audioVisualizerDiv.classList.add('hidden');
                         statsContainer.style.display = 'none';
@@ -1398,7 +1425,6 @@
                     recorder.stopRecording();
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
-                    addKeywordsBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
@@ -1493,7 +1519,6 @@
                     alert('Recorder error: ' + event.detail.message);
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
-                    addKeywordsBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
@@ -1503,7 +1528,6 @@
                     console.log('Recorder closed:', event.detail.reason);
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
-                    addKeywordsBtn.disabled = true;
                     recordingStatusDiv.classList.add('hidden');
                     audioVisualizerDiv.classList.add('hidden');
                     stopSessionTimer();
@@ -1544,47 +1568,11 @@
                     }
                 };
 
-                // Function to add test keywords dynamically during recording
-                window.addTestKeywords = () => {
-                    if (!recorder || !recorder.socket || recorder.socket.readyState !== WebSocket.OPEN) {
-                        alert('WebSocket is not connected. Start transcription first.');
-                        return;
-                    }
-
-                    // Prompt user for keywords or use predefined test keywords
-                    const userInput = prompt('Enter keywords separated by commas (or leave empty for test keywords):', '');
-                    
-                    let keywordsToAdd;
-                    if (userInput === null) {
-                        // User cancelled
-                        return;
-                    } else if (userInput.trim() === '') {
-                        // Use predefined test keywords
-                        keywordsToAdd = ['artificial intelligence', 'machine learning', 'neural networks', 'deep learning', 'computer vision'];
-                    } else {
-                        // Use user-provided keywords
-                        keywordsToAdd = userInput.split(',').map(k => k.trim()).filter(k => k.length > 0);
-                    }
-
-                    if (keywordsToAdd.length === 0) {
-                        alert('No valid keywords to add.');
-                        return;
-                    }
-
-                    // Send keywords message to backend
-                    const keywordsMessage = {
-                        type: 'keywords',
-                        words: keywordsToAdd,
-                        timestamp: new Date()
-                    };
-
-                    console.log('📤 Sending dynamic keywords:', keywordsMessage);
-                    recorder.socket.send(JSON.stringify(keywordsMessage));
-                    
-                    alert(`Added ${keywordsToAdd.length} keywords: ${keywordsToAdd.join(', ')}`);
-                };
 
                 function exportConfiguration() {
+                    const filename = prompt('Enter filename for configuration export:', `transcription-config-${new Date().toISOString().split('T')[0]}.json`);
+                    if (!filename) return;
+                    
                     const config = {
                         language: languageCodesInput.value,
                         phraseSets: document.getElementById('phraseSets').value,
@@ -1618,13 +1606,11 @@
                     const url = URL.createObjectURL(dataBlob);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = `transcription-config-${new Date().toISOString().split('T')[0]}.json`;
+                    link.download = filename;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
-                    
-                    alert('Configuration exported successfully!');
                 }
 
                 function importConfiguration(file) {
@@ -1668,11 +1654,8 @@
                                     Hide Custom Classes
                                 `;
                             }
-                            
-                            alert('Configuration imported successfully!');
                         } catch (error) {
                             console.error('Error importing configuration:', error);
-                            alert('Error importing configuration: Invalid JSON file');
                         }
                     };
                     reader.readAsText(file);
