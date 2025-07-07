@@ -34,6 +34,9 @@ This is a real-time audio transcription application that uses Google Cloud Speec
 GCP_PROJECT_ID=your-gcp-project-id
 GCP_LOCATION=your-gcp-location  # e.g., us-central1
 
+# AI Model Configuration
+GEMINI_MODEL=gemini-2.5-flash  # Gemini model to use (default: gemini-2.5-flash)
+
 # Logging Configuration
 LOG_LEVEL=INFO    # DEBUG, INFO, WARN, ERROR (default: INFO)
 LOG_FORMAT=JSON   # JSON, TEXT (default: JSON)

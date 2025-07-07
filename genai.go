@@ -9,7 +9,7 @@ import (
 )
 
 // generateSummary uses Google GenAI to generate content based on the provided transcript, previous summary, prompt, and custom words
-func generateSummary(ctx context.Context, projectID, location, fullTranscript, previousSummary, prompt string, customWords []string) (string, error) {
+func generateSummary(ctx context.Context, projectID, location, model, fullTranscript, previousSummary, prompt string, customWords []string) (string, error) {
 	if fullTranscript == "" {
 		return "", nil
 	}
@@ -44,7 +44,7 @@ func generateSummary(ctx context.Context, projectID, location, fullTranscript, p
 		{Role: "user", Parts: parts},
 	}
 
-	resp, err := client.Models.GenerateContent(ctx, "gemini-2.5-flash", content, nil)
+	resp, err := client.Models.GenerateContent(ctx, model, content, nil)
 	if err != nil {
 		return "", fmt.Errorf("error generating content: %v", err)
 	}

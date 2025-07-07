@@ -44,6 +44,16 @@ gcloud services enable aiplatform.googleapis.com
 export GCP_PROJECT_ID=your-project-id
 export GCP_LOCATION=us-central1
 
+# AI Model Configuration
+export GEMINI_MODEL=gemini-2.5-flash  # Gemini model to use (default: gemini-2.5-flash)
+
+# Logging Configuration
+export LOG_LEVEL=INFO    # DEBUG, INFO, WARN, ERROR (default: INFO)
+export LOG_FORMAT=JSON   # JSON, TEXT (default: JSON)
+
+# Preset Configuration
+export PRESET_DIRECTORY=./presets  # Directory containing preset files (default: ./presets)
+
 # Optional: Set custom port (default: 8080)
 export PORT=8080
 ```
@@ -104,9 +114,11 @@ Once certificate files (`server.crt` and `server.key`) are present in the projec
 
 - Real-time speech transcription with interim/final results
 - Multi-language support with auto-detection
-- AI-powered summarization (Gemini 2.5 Flash)
+- AI-powered summarization with configurable Gemini models
 - Audio visualization and session statistics
 - Copy transcripts and summaries to clipboard
+- Pre-configured prompt presets for different use cases (meetings, interviews, lectures)
+- Configurable logging with structured output
 
 ## Configuration
 
@@ -115,11 +127,41 @@ Once certificate files (`server.crt` and `server.key`) are present in the projec
 - **Port**: Set `PORT` environment variable (default: 8080)
 - **Audio**: 16kHz LINEAR16 mono format
 
+## Presets
+
+The application supports prompt presets for different use cases. Presets are stored as text files in the `presets` directory (configurable via `PRESET_DIRECTORY` environment variable).
+
+### Built-in Presets
+
+- **General Summary**: Basic conversation summarization
+- **Meeting Summary**: Business meeting focused with decisions and action items
+- **Interview Summary**: Job interview evaluation and assessment
+- **Lecture Notes**: Educational content with key concepts and takeaways
+
+### Custom Presets
+
+Create custom presets by:
+1. Setting `PRESET_DIRECTORY` environment variable to your custom directory
+2. Creating `.txt` files following this format:
+
+```
+Title: Your Preset Title
+Summary: Your summary prompt content here...
+This can span multiple lines.
+
+Conclusion: Your conclusion prompt content here...
+This can also span multiple lines.
+```
+
+3. Restarting the application to load new presets
+
 ## API Endpoints
 
 - `GET /` - Web interface
-- `GET /api/default-prompt` - Summary prompt configuration
-- `WebSocket /ws` - Audio streaming
+- `GET /api/default-prompt` - Returns the default summary prompt as JSON
+- `GET /api/presets` - Returns available preset names and titles as JSON
+- `GET /api/presets/{name}` - Returns specific preset content (title, summary, conclusion)
+- `WebSocket /ws` - Real-time audio streaming and transcription
 
 ## Build
 

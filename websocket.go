@@ -153,13 +153,18 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Get project ID and location from environment variables
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	location := os.Getenv("GCP_LOCATION")
+	geminiModel := os.Getenv("GEMINI_MODEL")
+	if geminiModel == "" {
+		geminiModel = "gemini-2.5-flash"
+	}
 	if projectID == "" || location == "" {
 		logger.Warn("GCP environment variables not set, summary generation disabled",
 			"missing", "GCP_PROJECT_ID or GCP_LOCATION")
 	} else {
 		logger.Info("GCP configuration loaded",
 			"projectID", projectID,
-			"location", location)
+			"location", location,
+			"geminiModel", geminiModel)
 	}
 
 	// Create Speech-to-Text client
@@ -514,7 +519,7 @@ If this is an update to an existing summary, maintain the structure and content 
 								logger.Debug("Generating summary",
 									"transcriptLength", len(fullTranscript),
 									"previousSummaryLength", len(previousSummary))
-								summary, err := generateSummary(ctx, projectID, location, fullTranscript, previousSummary, summaryPrompt, customWords)
+								summary, err := generateSummary(ctx, projectID, location, geminiModel, fullTranscript, previousSummary, summaryPrompt, customWords)
 								if err != nil {
 									logger.Error("Error generating summary", "error", err)
 									return
@@ -739,7 +744,7 @@ If this is an update to an existing summary, maintain the structure and content 
 							"previousSummaryLength", len(previousSummary),
 							"combinedPromptLength", len(combinedPrompt))
 
-						summary, err := generateSummary(endPromptCtx, projectID, location, fullTranscript, previousSummary, combinedPrompt, customWords)
+						summary, err := generateSummary(endPromptCtx, projectID, location, geminiModel, fullTranscript, previousSummary, combinedPrompt, customWords)
 						if err != nil {
 							logger.Error("Error generating final summary with end prompt", "error", err)
 							return
