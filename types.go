@@ -87,6 +87,13 @@ type StatusResponse struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// Preset represents a prompt preset with title, summary and conclusion
+type Preset struct {
+	Title      string `json:"title"`
+	Summary    string `json:"summary"`
+	Conclusion string `json:"conclusion"`
+}
+
 // TemplateData holds data for serving the HTML template
 type TemplateData struct {
 	WebSocketHost string

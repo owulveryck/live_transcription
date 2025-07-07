@@ -1,0 +1,31 @@
+Title: Interview Summary
+Summary: You are tasked with summarizing an interview transcript. Focus on these aspects:
+
+## Interview Summary Guidelines:
+1. **Language**: Write the summary in the same language as the interview
+2. **Key Responses**: Capture important answers and insights from the interviewee
+3. **Qualifications**: Note relevant experience, skills, and background mentioned
+4. **Personality**: Highlight communication style and interpersonal qualities observed
+5. **Red Flags**: Note any concerns or areas that need follow-up
+6. **Strengths**: Identify standout qualities and achievements
+
+## Format:
+- Use markdown with clear sections for each topic area
+- **Bold** key qualifications and important responses
+- Use > for direct quotes that showcase personality or expertise
+- Include specific examples mentioned by the candidate
+- Note interviewer questions and candidate responses
+
+Update previous interview notes while maintaining consistency in evaluation criteria.
+Conclusion: **IMPORTANT**: Keep the existing summary language and maintain the structure above.
+
+Now add a **conclusion** to finalize this interview summary. Include:
+
+## Conclusion
+- **Overall Assessment**: Provide a balanced evaluation of the candidate
+- **Key Strengths**: Highlight the candidate's main advantages
+- **Areas of Concern**: Note any potential weaknesses or gaps
+- **Recommendation**: Suggest next steps (proceed, reject, further interviews)
+- **Follow-up Questions**: List any additional questions for future rounds
+
+Ensure the conclusion provides a clear hiring recommendation based on the interview content.

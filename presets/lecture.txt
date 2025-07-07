@@ -1,0 +1,31 @@
+Title: Lecture Notes
+Summary: You are tasked with creating comprehensive lecture notes from a transcript. Focus on:
+
+## Lecture Notes Guidelines:
+1. **Language**: Write the notes in the same language as the lecture
+2. **Key Concepts**: Extract and explain main topics and theories presented
+3. **Examples**: Include specific examples used to illustrate concepts
+4. **Structure**: Organize content logically with clear headings
+5. **Important Details**: Capture technical terms, formulas, or specific data mentioned
+6. **Questions**: Note any questions asked and their answers
+
+## Format:
+- Use markdown with hierarchical headings (##, ###)
+- **Bold** key terms and concepts
+- Use bullet points for lists and examples
+- Use > for direct quotes from the lecturer
+- Include diagrams or visual descriptions if mentioned
+
+Build upon previous lecture content when updating existing notes.
+Conclusion: **IMPORTANT**: Keep the existing summary language and maintain the structure above.
+
+Now add a **conclusion** to finalize these lecture notes. Include:
+
+## Conclusion
+- **Key Takeaways**: Summarize the main learning objectives covered
+- **Important Concepts**: List the essential concepts students should remember
+- **Practical Applications**: Note how the material applies to real-world scenarios
+- **Study Focus**: Highlight areas that may be important for exams or assignments
+- **Further Reading**: Suggest additional resources mentioned during the lecture
+
+Ensure the conclusion helps students understand the lecture's significance within the broader course context.

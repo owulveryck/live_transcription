@@ -1,0 +1,19 @@
+Title: Custom Preset
+Summary: This is a custom preset example that demonstrates how to create your own presets.
+
+You can customize this prompt for your specific use case:
+
+1. **Language**: Write in the appropriate language
+2. **Focus**: Tailor the summary focus to your needs
+3. **Format**: Use the formatting that works best for you
+4. **Content**: Include the specific information you want captured
+
+This is just an example - modify it as needed for your specific requirements.
+Conclusion: This is the conclusion section for the custom preset.
+
+## Custom Conclusion
+- **Summary**: Provide a final summary
+- **Key Points**: List the important takeaways
+- **Next Steps**: Outline any follow-up actions
+
+This conclusion can be customized for your specific workflow.

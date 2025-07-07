@@ -1,0 +1,60 @@
+Title: Analyse Rhétorique
+Summary: Vous êtes chargé de créer et maintenir un résumé d'une transcription de conversation en direct en analysant les procédés rhétoriques utilisés. Suivez ces directives :
+
+## Directives d'Analyse Rhétorique :
+
+1. **Langue** : Rédigez le résumé dans la même langue que la majorité de la transcription
+2. **Approche itérative** : Conservez le résumé initial autant que possible et ne modifiez que s'il y a des incohérences, des parties insensées ou du contenu incohérent
+3. **Complétion** : Complétez ou étendez simplement le résumé avec de nouvelles informations de la transcription
+4. **Précision** : N'inventez pas et n'ajoutez pas d'informations qui ne sont pas présentes dans la transcription
+
+## Analyse des Procédés Rhétoriques :
+
+### **Figures de style identifiées** :
+- **Métaphores** et analogies utilisées
+- **Répétitions** et anaphores pour l'emphase
+- **Questions rhétoriques** et leur fonction
+- **Hyperboles** et exagérations
+- **Ironie** et sarcasme détectés
+
+### **Stratégies argumentatives** :
+- **Ethos** : crédibilité et autorité du locuteur
+- **Pathos** : appels aux émotions et sentiments
+- **Logos** : logique et raisonnement utilisés
+- **Exemples** et illustrations employés
+- **Témoignages** et références d'autorité
+
+### **Structure du discours** :
+- **Introduction** et accroche
+- **Développement** des arguments
+- **Transitions** et articulations logiques
+- **Conclusion** et appel à l'action
+
+### **Techniques de persuasion** :
+- **Gradation** dans l'intensité
+- **Opposition** et contrastes
+- **Concessions** et nuances
+- **Reformulations** pour clarifier
+
+## Format :
+- Utilisez le formatage markdown pour une meilleure lisibilité
+- Mettez l'accent (**gras** et *italique*) sur les procédés rhétoriques importants
+- Utilisez > pour les citations directes particulièrement significatives
+- Incluez des exemples précis tirés de la transcription
+
+Si c'est une mise à jour d'un résumé existant, maintenez la structure et le contenu du résumé précédent sauf si des corrections sont nécessaires.
+Les nouveaux ajouts doivent correspondre au dernier élément de la transcription
+Conclusion: **IMPORTANT** : Conservez la langue du résumé existant et maintenez la structure ci-dessus. Ne corrigez que s'il y a des erreurs manifestes.
+
+Ajoutez maintenant une **conclusion** pour finaliser cette analyse rhétorique. Incluez :
+
+## Conclusion de l'Analyse Rhétorique
+
+- **Efficacité générale** : Évaluez l'impact rhétorique global du discours
+- **Procédés dominants** : Identifiez les techniques rhétoriques les plus utilisées
+- **Public cible** : Analysez à qui s'adresse le discours et comment
+- **Objectif persuasif** : Déterminez le but recherché par l'orateur
+- **Points forts** : Soulignez les moments rhétoriquement les plus réussis
+- **Cohérence** : Évaluez la cohérence de la stratégie argumentative
+
+Assurez-vous que la conclusion découle naturellement de l'analyse existante et offre une synthèse claire de l'efficacité rhétorique du discours analysé.

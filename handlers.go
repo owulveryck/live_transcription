@@ -180,3 +180,148 @@ func getContentType(filePath string) string {
 		return "text/plain"
 	}
 }
+
+// getPresetDirectory returns the preset directory path from environment or default
+func getPresetDirectory() string {
+	dir := os.Getenv("PRESET_DIRECTORY")
+	if dir == "" {
+		dir = "./presets"
+	}
+	return dir
+}
+
+// parsePresetFile parses a preset file and returns a Preset struct
+func parsePresetFile(content string) (*Preset, error) {
+	preset := &Preset{}
+	lines := strings.Split(content, "\n")
+	
+	var currentSection string
+	var summaryLines, conclusionLines []string
+	
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		
+		if strings.HasPrefix(line, "Title: ") {
+			preset.Title = strings.TrimPrefix(line, "Title: ")
+		} else if strings.HasPrefix(line, "Summary: ") {
+			currentSection = "summary"
+			summaryLines = append(summaryLines, strings.TrimPrefix(line, "Summary: "))
+		} else if strings.HasPrefix(line, "Conclusion: ") {
+			currentSection = "conclusion"
+			conclusionLines = append(conclusionLines, strings.TrimPrefix(line, "Conclusion: "))
+		} else if line != "" {
+			switch currentSection {
+			case "summary":
+				summaryLines = append(summaryLines, line)
+			case "conclusion":
+				conclusionLines = append(conclusionLines, line)
+			}
+		}
+	}
+	
+	preset.Summary = strings.Join(summaryLines, "\n")
+	preset.Conclusion = strings.Join(conclusionLines, "\n")
+	
+	return preset, nil
+}
+
+// servePresets serves the list of available presets
+func servePresets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	presetDir := getPresetDirectory()
+	presets := make(map[string]string)
+	
+	// Check if directory exists
+	if _, err := os.Stat(presetDir); os.IsNotExist(err) {
+		logger.Warn("Preset directory does not exist", "directory", presetDir)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(presets)
+		return
+	}
+	
+	// Read directory contents
+	files, err := os.ReadDir(presetDir)
+	if err != nil {
+		logger.Error("Failed to read preset directory", "directory", presetDir, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	
+	// Process each .txt file
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".txt") {
+			continue
+		}
+		
+		filePath := filepath.Join(presetDir, file.Name())
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			logger.Error("Failed to read preset file", "file", filePath, "error", err)
+			continue
+		}
+		
+		preset, err := parsePresetFile(string(content))
+		if err != nil {
+			logger.Error("Failed to parse preset file", "file", filePath, "error", err)
+			continue
+		}
+		
+		presetName := strings.TrimSuffix(file.Name(), ".txt")
+		presets[presetName] = preset.Title
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(presets); err != nil {
+		logger.Error("Failed to encode presets response", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// servePreset serves a specific preset's content
+func servePreset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Extract preset name from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/presets/")
+	if path == "" {
+		http.Error(w, "Preset name required", http.StatusBadRequest)
+		return
+	}
+	
+	presetDir := getPresetDirectory()
+	filePath := filepath.Join(presetDir, path+".txt")
+	
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.Error(w, "Preset not found", http.StatusNotFound)
+		return
+	}
+	
+	// Read and parse preset file
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		logger.Error("Failed to read preset file", "file", filePath, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	
+	preset, err := parsePresetFile(string(content))
+	if err != nil {
+		logger.Error("Failed to parse preset file", "file", filePath, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(preset); err != nil {
+		logger.Error("Failed to encode preset response", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}

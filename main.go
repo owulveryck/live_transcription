@@ -14,6 +14,8 @@ func main() {
 	// Set up routes
 	http.HandleFunc("/ws", handleWebSocket)
 	http.HandleFunc("/api/default-prompt", serveDefaultPrompt)
+	http.HandleFunc("/api/presets", servePresets)
+	http.HandleFunc("/api/presets/", servePreset)
 	http.HandleFunc("/", serveStaticFiles)
 
 	// Get port from environment variable, default to 8080

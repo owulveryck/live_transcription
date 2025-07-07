@@ -57,3 +57,4 @@ func generateSummary(ctx context.Context, projectID, location, fullTranscript, p
 
 	return "", fmt.Errorf("no content generated")
 }
+

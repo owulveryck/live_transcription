@@ -473,32 +473,8 @@
                         <div class="control-row">
                             <div class="form-group" style="flex: 1;">
                                 <label class="form-label">Preset Prompts</label>
-                                <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3);">
-                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="default">
-                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1v-1a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1a1 1 0 0 1-1-1V3z"/>
-                                            <path d="M2 4h12v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/>
-                                        </svg>
-                                        General Summary
-                                    </button>
-                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="meeting">
-                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002A.274.274 0 0 1 15 13H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                                        </svg>
-                                        Meeting Summary
-                                    </button>
-                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="lecture">
-                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5z"/>
-                                        </svg>
-                                        Lecture Notes
-                                    </button>
-                                    <button type="button" class="btn btn-outline prompt-preset" data-preset="interview">
-                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287z"/>
-                                        </svg>
-                                        Interview Summary
-                                    </button>
+                                <div id="presetButtonsContainer" style="display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3);">
+                                    <!-- Preset buttons will be dynamically loaded here -->
                                 </div>
                                 <p class="form-hint">Choose from preset prompts optimized for different types of conversations, or create your own custom prompt above.</p>
                             </div>
@@ -1192,6 +1168,7 @@
                 defaultPrompt: '', // Will be loaded from backend
                 defaultEndPrompt: '', // Default end prompt
                 backendPromptLoaded: false,
+                availablePresets: {}, // Will be loaded from backend
 
                 // Fetch default prompt from backend
                 async fetchDefaultPrompt() {
@@ -1267,6 +1244,111 @@ Now add a **conclusion** to finalize this conversation summary. Include:
 - **Follow-up**: Note any planned future discussions or meetings
 
 Ensure the conclusion flows naturally from the existing summary and provides clear closure to the conversation.`;
+                },
+
+                // Fetch available presets from backend
+                async fetchPresets() {
+                    try {
+                        const response = await fetch('/api/presets');
+                        if (response.ok) {
+                            const presets = await response.json();
+                            this.availablePresets = presets;
+                            console.log('Available presets loaded:', presets);
+                            return presets;
+                        } else {
+                            console.error('Failed to fetch presets from backend');
+                            return {};
+                        }
+                    } catch (error) {
+                        console.error('Error fetching presets:', error);
+                        return {};
+                    }
+                },
+
+                // Load specific preset content from backend
+                async loadPreset(presetName) {
+                    try {
+                        const response = await fetch(`/api/presets/${presetName}`);
+                        if (response.ok) {
+                            const preset = await response.json();
+                            console.log(`Loaded preset ${presetName}:`, preset);
+                            return preset;
+                        } else {
+                            console.error(`Failed to load preset ${presetName}`);
+                            return null;
+                        }
+                    } catch (error) {
+                        console.error(`Error loading preset ${presetName}:`, error);
+                        return null;
+                    }
+                },
+
+                // Create preset buttons dynamically
+                async createPresetButtons() {
+                    const container = document.getElementById('presetButtonsContainer');
+                    if (!container) return;
+
+                    // Clear existing buttons
+                    container.innerHTML = '';
+
+                    // Fetch presets from backend
+                    const presets = await this.fetchPresets();
+
+                    // Create icons for different preset types
+                    const presetIcons = {
+                        general: '<path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1v-1a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1a1 1 0 0 1-1-1V3z"/><path d="M2 4h12v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/>',
+                        meeting: '<path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002A.274.274 0 0 1 15 13H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>',
+                        lecture: '<path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5z"/>',
+                        interview: '<path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287z"/>',
+                        default: '<path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>'
+                    };
+
+                    // Create button for each preset
+                    Object.entries(presets).forEach(([presetName, presetTitle]) => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'btn btn-outline prompt-preset';
+                        button.dataset.preset = presetName;
+
+                        // Choose appropriate icon
+                        const iconPath = presetIcons[presetName] || presetIcons.default;
+
+                        button.innerHTML = `
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                ${iconPath}
+                            </svg>
+                            ${presetTitle}
+                        `;
+
+                        // Add click handler
+                        button.addEventListener('click', async () => {
+                            await this.applyBackendPreset(presetName);
+                        });
+
+                        container.appendChild(button);
+                    });
+                },
+
+                // Apply a preset from the backend
+                async applyBackendPreset(presetName) {
+                    const preset = await this.loadPreset(presetName);
+                    if (!preset) {
+                        showToast(`Failed to load preset: ${presetName}`, 'error');
+                        return;
+                    }
+
+                    const summaryPromptTextarea = document.getElementById('summaryPrompt');
+                    const endPromptTextarea = document.getElementById('endPrompt');
+
+                    if (summaryPromptTextarea && preset.summary) {
+                        summaryPromptTextarea.value = preset.summary;
+                    }
+
+                    if (endPromptTextarea && preset.conclusion) {
+                        endPromptTextarea.value = preset.conclusion;
+                    }
+
+                    showToast(`Applied ${preset.title} preset`, 'success');
                 },
 
                 presetPrompts: {
@@ -1488,6 +1570,9 @@ Update previous interview notes while maintaining consistency in evaluation crit
             async function initPromptManagement() {
                 // Load current prompt (async to fetch from backend)
                 await summaryPromptManager.loadPrompt();
+                
+                // Create preset buttons from backend
+                await summaryPromptManager.createPresetButtons();
 
                 // Save prompt button
                 const savePromptBtn = document.getElementById('savePrompt');
@@ -1528,13 +1613,7 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     });
                 }
 
-                // Preset prompt buttons
-                document.querySelectorAll('.prompt-preset').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const presetName = button.dataset.preset;
-                        summaryPromptManager.applyPreset(presetName);
-                    });
-                });
+                // Note: Preset prompt buttons are now handled dynamically in createPresetButtons()
             }
 
             // Initialize i18n and theme when the page loads
