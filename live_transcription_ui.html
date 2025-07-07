@@ -3687,7 +3687,12 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         connectionStatus.updateStatus('connecting');
                         sessionManager.startSession();
                         
-                        const wsUrl = 'ws://localhost:8080/ws'; // Default WebSocket URL
+                        // Auto-detect WebSocket protocol and host based on current page
+                        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                        // Use backend-provided host if available, otherwise use current page host
+                        const backendHost = '{{.WebSocketHost}}';
+                        const host = backendHost || window.location.host; // This includes hostname and port
+                        const wsUrl = `${protocol}//${host}/ws`;
                         
                         const languageCodes = languageCodesInput.value.split(',').map(code => code.trim()).filter(code => code.length > 0);
                         const customWords = [];

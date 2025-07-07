@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -99,6 +100,11 @@ type StatusResponse struct {
 	Status    string    `json:"status"`
 	Message   string    `json:"message"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+// TemplateData holds data for serving the HTML template
+type TemplateData struct {
+	WebSocketHost string
 }
 
 // WebSocket upgrader
@@ -1472,7 +1478,31 @@ Ensure the conclusion flows naturally from the existing summary and provides cle
 func serveStaticFiles(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
-		http.ServeFile(w, r, "live_transcription_ui.html")
+		// Parse and execute HTML template with WebSocket configuration
+		tmpl, err := template.ParseFiles("live_transcription_ui.html")
+		if err != nil {
+			logger.Error("Failed to parse HTML template", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		
+		// Get WebSocket host from environment variable or default to empty (client auto-detection)
+		wsHost := os.Getenv("WEBSOCKET_HOST")
+		if wsHost == "" {
+			// Let client auto-detect from current page host
+			wsHost = ""
+		}
+		
+		data := TemplateData{
+			WebSocketHost: wsHost,
+		}
+		
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := tmpl.Execute(w, data); err != nil {
+			logger.Error("Failed to execute HTML template", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 	case "/live_audio_recorder.js":
 		w.Header().Set("Content-Type", "application/javascript")
 		http.ServeFile(w, r, "live_audio_recorder.js")
@@ -1499,14 +1529,46 @@ func main() {
 	http.HandleFunc("/api/default-prompt", serveDefaultPrompt)
 	http.HandleFunc("/", serveStaticFiles)
 
-	// Start server
-	port := ":8080"
-	logger.Info("Starting server",
-		"address", fmt.Sprintf("http://localhost%s", port),
-		"websocket", fmt.Sprintf("ws://localhost%s/ws", port))
+	// Get port from environment variable, default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	// Ensure port has colon prefix
+	if !strings.HasPrefix(port, ":") {
+		port = ":" + port
+	}
 
-	if err := http.ListenAndServe(port, nil); err != nil {
-		logger.Error("Server failed to start", "error", err)
-		os.Exit(1)
+	// Check for certificate files for HTTPS
+	certFile := "server.crt"
+	keyFile := "server.key"
+	
+	// Check if certificate files exist
+	_, certErr := os.Stat(certFile)
+	_, keyErr := os.Stat(keyFile)
+	
+	if certErr == nil && keyErr == nil {
+		// Both certificate files exist, start HTTPS server
+		logger.Info("Certificate files found, starting HTTPS server",
+			"address", fmt.Sprintf("https://localhost%s", port),
+			"websocket", fmt.Sprintf("wss://localhost%s/ws", port),
+			"certFile", certFile,
+			"keyFile", keyFile)
+		
+		if err := http.ListenAndServeTLS(port, certFile, keyFile, nil); err != nil {
+			logger.Error("HTTPS server failed to start", "error", err)
+			os.Exit(1)
+		}
+	} else {
+		// Certificate files not found, start HTTP server
+		logger.Info("Starting HTTP server",
+			"address", fmt.Sprintf("http://localhost%s", port),
+			"websocket", fmt.Sprintf("ws://localhost%s/ws", port),
+			"note", "For HTTPS, place server.crt and server.key in the current directory")
+		
+		if err := http.ListenAndServe(port, nil); err != nil {
+			logger.Error("HTTP server failed to start", "error", err)
+			os.Exit(1)
+		}
 	}
 }

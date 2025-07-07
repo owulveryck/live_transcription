@@ -1,2 +1,9 @@
 live_transcription
 .envrc
+
+# SSL Certificate files
+server.crt
+server.key
+*.pem
+*.p12
+*.pfx
