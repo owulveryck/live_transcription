@@ -10,6 +10,7 @@ live_transcription
 # SSL Certificate files
 server.crt
 server.key
+certs/
 *.pem
 *.p12
 *.pfx

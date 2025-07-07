@@ -470,7 +470,7 @@
                 if (!this.workletLoaded) {
                     console.log("Loading audio-processor.js module for system audio...");
                     try {
-                        await this.audioContext.audioWorklet.addModule('audio-processor.js');
+                        await this.audioContext.audioWorklet.addModule('js/audio-processor.js');
                         this.workletLoaded = true;
                         console.log("AudioWorklet module loaded successfully for system audio");
                     } catch (loadError) {
@@ -540,7 +540,7 @@
                 if (!this.workletLoaded) {
                     console.log("Loading audio-processor.js module...");
                     try {
-                        await this.audioContext.audioWorklet.addModule('audio-processor.js');
+                        await this.audioContext.audioWorklet.addModule('js/audio-processor.js');
                         this.workletLoaded = true;
                         console.log("AudioWorklet module loaded successfully");
                     } catch (loadError) {

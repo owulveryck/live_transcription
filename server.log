@@ -1,2 +1,0 @@
-{"time":"2025-07-04T16:29:09.604287+02:00","level":"INFO","msg":"Starting server","address":"http://localhost:8080","websocket":"ws://localhost:8080/ws"}
-signal: terminated
