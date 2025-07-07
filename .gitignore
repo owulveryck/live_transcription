@@ -1,6 +1,12 @@
 live_transcription
 .envrc
 
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
 # SSL Certificate files
 server.crt
 server.key
