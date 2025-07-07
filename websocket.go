@@ -446,12 +446,12 @@ If this is an update to an existing summary, maintain the structure and content 
 				continue
 			}
 			if err != nil {
-				logger.Error("Error receiving from Speech-to-Text", "error", err)
-				// Check if this is a context cancellation error
+				// Check if this is a context cancellation error first
 				if ctx.Err() != nil {
-					logger.Info("Context cancelled, stopping receive loop")
+					logger.Debug("Context cancelled, stopping receive loop", "error", err)
 					return
 				}
+				logger.Error("Error receiving from Speech-to-Text", "error", err)
 				// Try to recreate stream on error
 				if recreateErr := createStream(nil); recreateErr != nil {
 					// Check if the error is due to connection closing
