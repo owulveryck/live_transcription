@@ -397,6 +397,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var fullTranscription strings.Builder
+	var newTranscripts strings.Builder // Track new transcripts since last summary
 	var currentSummary string
 	var summaryMu sync.Mutex // Protect currentSummary from race conditions
 	customWords := config.CustomWords // Store custom words for use in summary generation
@@ -405,13 +406,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defaultSummaryPrompt := `You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
 
 1. **Language**: Write the summary in the same language as the majority of the transcript
-2. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
-3. **Completion**: Simply complete or extend the summary with new information from the transcript
-4. **Accuracy**: Do not invent or add information that is not present in the transcript
-5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
-6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
+2. **Focus on NEW content**: Pay special attention to the "NEW TRANSCRIPT" section which contains the latest additions to the conversation
+3. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
+4. **Completion**: Simply complete or extend the summary with new information from the NEW TRANSCRIPT section
+5. **Accuracy**: Do not invent or add information that is not present in the transcript
+6. **Important quotes**: When something is particularly important, include a direct quote from the transcript
+7. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
 
-If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed. Use the FULL TRANSCRIPT as context, but focus your updates on incorporating the NEW TRANSCRIPT content.`
 
 	// Get summarization prompt from config, or use default
 	summaryPrompt := config.SummaryPrompt
@@ -506,10 +508,12 @@ If this is an update to an existing summary, maintain the structure and content 
 
 					if result.IsFinal {
 						fullTranscription.WriteString(transcriptionText + " ")
+						newTranscripts.WriteString(transcriptionText + " ") // Track new content
 						// Generate summary asynchronously to avoid blocking transcript processing
 						if projectID != "" && location != "" {
 							go func() {
 								fullTranscript := strings.TrimSpace(fullTranscription.String())
+								newTranscript := strings.TrimSpace(newTranscripts.String())
 
 								// Safely read current summary
 								summaryMu.Lock()
@@ -518,17 +522,21 @@ If this is an update to an existing summary, maintain the structure and content 
 
 								logger.Debug("Generating summary",
 									"transcriptLength", len(fullTranscript),
+									"newTranscriptLength", len(newTranscript),
 									"previousSummaryLength", len(previousSummary))
-								summary, err := generateSummary(ctx, projectID, location, geminiModel, fullTranscript, previousSummary, summaryPrompt, customWords)
+								summary, err := generateSummary(ctx, projectID, location, geminiModel, fullTranscript, newTranscript, previousSummary, summaryPrompt, customWords)
 								if err != nil {
 									logger.Error("Error generating summary", "error", err)
 									return
 								}
 								if summary != "" {
-									// Safely update current summary
+									// Safely update current summary and clear new transcripts
 									summaryMu.Lock()
 									currentSummary = summary
 									summaryMu.Unlock()
+									
+									// Clear new transcripts buffer after successful summary generation
+									newTranscripts.Reset()
 
 									logger.Info("Summary generated", "summaryLength", len(summary))
 									summaryResponse := SummaryResponse{
@@ -731,6 +739,9 @@ If this is an update to an existing summary, maintain the structure and content 
 							return
 						}
 
+						// For final summary, use remaining new transcripts or empty string if none
+						newTranscript := strings.TrimSpace(newTranscripts.String())
+
 						// Safely read current summary
 						summaryMu.Lock()
 						previousSummary := currentSummary
@@ -741,10 +752,11 @@ If this is an update to an existing summary, maintain the structure and content 
 
 						logger.Info("Generating final summary with end prompt",
 							"transcriptLength", len(fullTranscript),
+							"newTranscriptLength", len(newTranscript),
 							"previousSummaryLength", len(previousSummary),
 							"combinedPromptLength", len(combinedPrompt))
 
-						summary, err := generateSummary(endPromptCtx, projectID, location, geminiModel, fullTranscript, previousSummary, combinedPrompt, customWords)
+						summary, err := generateSummary(endPromptCtx, projectID, location, geminiModel, fullTranscript, newTranscript, previousSummary, combinedPrompt, customWords)
 						if err != nil {
 							logger.Error("Error generating final summary with end prompt", "error", err)
 							return

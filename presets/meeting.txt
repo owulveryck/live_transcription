@@ -3,11 +3,12 @@ Summary: You are tasked with summarizing a business meeting transcript. Focus on
 
 ## Meeting Summary Guidelines:
 1. **Language**: Write the summary in the same language as the majority of the transcript
-2. **Key Decisions**: Highlight all decisions made during the meeting
-3. **Action Items**: Extract specific tasks assigned to individuals with deadlines
-4. **Important Discussions**: Summarize key topics and their outcomes
-5. **Attendees**: Note who participated and their key contributions
-6. **Follow-up**: Identify any next steps or future meetings planned
+2. **Focus on NEW content**: Pay special attention to the "NEW TRANSCRIPT" section which contains the latest additions to the meeting
+3. **Key Decisions**: Highlight all decisions made during the meeting, especially new ones from the latest transcript
+4. **Action Items**: Extract specific tasks assigned to individuals with deadlines, focusing on new assignments
+5. **Important Discussions**: Summarize key topics and their outcomes, emphasizing recent developments
+6. **Attendees**: Note who participated and their key contributions
+7. **Follow-up**: Identify any next steps or future meetings planned
 
 ## Format:
 - Use markdown with clear sections
@@ -15,7 +16,7 @@ Summary: You are tasked with summarizing a business meeting transcript. Focus on
 - Use > for direct quotes when decisions are made
 - Include timestamps for critical moments if available
 
-Maintain previous meeting context when updating existing summaries.
+Use the FULL TRANSCRIPT as context, but focus your updates on incorporating the NEW TRANSCRIPT content. Maintain previous meeting context when updating existing summaries.
 Conclusion: **IMPORTANT**: Keep the existing summary language and maintain the structure above.
 
 Now add a **conclusion** to finalize this meeting summary. Include:

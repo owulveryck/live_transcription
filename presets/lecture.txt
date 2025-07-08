@@ -3,11 +3,12 @@ Summary: You are tasked with creating comprehensive lecture notes from a transcr
 
 ## Lecture Notes Guidelines:
 1. **Language**: Write the notes in the same language as the lecture
-2. **Key Concepts**: Extract and explain main topics and theories presented
-3. **Examples**: Include specific examples used to illustrate concepts
-4. **Structure**: Organize content logically with clear headings
-5. **Important Details**: Capture technical terms, formulas, or specific data mentioned
-6. **Questions**: Note any questions asked and their answers
+2. **Focus on NEW content**: Pay special attention to the "NEW TRANSCRIPT" section which contains the latest part of the lecture
+3. **Key Concepts**: Extract and explain main topics and theories presented, especially new concepts introduced
+4. **Examples**: Include specific examples used to illustrate concepts, focusing on recent examples
+5. **Structure**: Organize content logically with clear headings
+6. **Important Details**: Capture technical terms, formulas, or specific data mentioned in new content
+7. **Questions**: Note any questions asked and their answers in the latest section
 
 ## Format:
 - Use markdown with hierarchical headings (##, ###)
@@ -16,7 +17,7 @@ Summary: You are tasked with creating comprehensive lecture notes from a transcr
 - Use > for direct quotes from the lecturer
 - Include diagrams or visual descriptions if mentioned
 
-Build upon previous lecture content when updating existing notes.
+Use the FULL TRANSCRIPT as context, but focus your updates on incorporating the NEW TRANSCRIPT content. Build upon previous lecture content when updating existing notes.
 Conclusion: **IMPORTANT**: Keep the existing summary language and maintain the structure above.
 
 Now add a **conclusion** to finalize these lecture notes. Include:

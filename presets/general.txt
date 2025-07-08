@@ -2,14 +2,15 @@ Title: General Summary
 Summary: You are tasked with creating and maintaining a summary of a live conversation transcript. Follow these guidelines:
 
 1. **Language**: Write the summary in the same language as the majority of the transcript
-2. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
-3. **Completion**: Simply complete or extend the summary with new information from the transcript
-4. **Accuracy**: Do not invent or add information that is not present in the transcript
-5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
-6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
+2. **Focus on NEW content**: Pay special attention to the "NEW TRANSCRIPT" section which contains the latest additions to the conversation
+3. **Iterative approach**: Keep the initial summary as much as possible and only make changes if there are inconsistencies, nonsensical parts, or incoherent content
+4. **Completion**: Simply complete or extend the summary with new information from the NEW TRANSCRIPT section
+5. **Accuracy**: Do not invent or add information that is not present in the transcript
+6. **Important quotes**: When something is particularly important, include a direct quote from the transcript
+7. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
 
-If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.
-**IMPORTANT**: Keep the existing summary language and maintain the structure above.`
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed. Use the FULL TRANSCRIPT as context, but focus your updates on incorporating the NEW TRANSCRIPT content.
+**IMPORTANT**: Keep the existing summary language and maintain the structure above.
 
 Conclusion: **IMPORTANT**: Keep the existing summary language and maintain the structure above.
 
