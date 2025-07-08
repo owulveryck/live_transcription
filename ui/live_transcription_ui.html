@@ -29,6 +29,10 @@
             <kbd class="shortcut-key">Ctrl+X</kbd>
         </div>
         <div class="shortcut-item">
+            <span>Toggle Transcript</span>
+            <kbd class="shortcut-key">T</kbd>
+        </div>
+        <div class="shortcut-item">
             <span>Toggle Shortcuts</span>
             <kbd class="shortcut-key">?</kbd>
         </div>
@@ -225,9 +229,19 @@
                     </div>
                 </div>
                 
+                <!-- Toggle button for transcript visibility - always visible -->
+                <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 10px;">
+                    <button id="toggleTranscriptBtn" class="btn btn-outline transcript-toggle" title="Toggle transcript visibility">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" id="toggleTranscriptIcon">
+                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                        </svg>
+                        <span id="toggleTranscriptText">Hide Transcript</span>
+                    </button>
+                </div>
+
                 <!-- Main Content Area - Final Transcript and Summary side by side -->
                 <div class="main-content-area">
-                    <div class="final-transcript-container">
+                    <div class="final-transcript-container" id="finalTranscriptContainer">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h2>Final Transcript</h2>
                             <button id="copyFinalTranscriptBtn" class="btn btn-outline" onclick="copyFinalTranscriptToClipboard()" disabled>
@@ -2076,6 +2090,45 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     `;
                 });
 
+                // Toggle transcript visibility
+                const toggleTranscriptBtn = document.getElementById('toggleTranscriptBtn');
+                const toggleTranscriptIcon = document.getElementById('toggleTranscriptIcon');
+                const toggleTranscriptText = document.getElementById('toggleTranscriptText');
+                const finalTranscriptContainer = document.getElementById('finalTranscriptContainer');
+                const mainContentArea = document.querySelector('.main-content-area');
+                let transcriptVisible = true;
+
+                if (toggleTranscriptBtn && finalTranscriptContainer && mainContentArea) {
+                    toggleTranscriptBtn.addEventListener('click', () => {
+                        transcriptVisible = !transcriptVisible;
+                        
+                        if (transcriptVisible) {
+                            // Show transcript
+                            finalTranscriptContainer.classList.remove('hidden');
+                            mainContentArea.classList.remove('transcript-hidden');
+                            toggleTranscriptBtn.title = 'Hide transcript to expand summary';
+                            toggleTranscriptText.textContent = 'Hide Transcript';
+                            // Change icon to document icon (transcript visible)
+                            toggleTranscriptIcon.innerHTML = `
+                                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                            `;
+                            showToast('Transcript shown', 'info', 2000);
+                        } else {
+                            // Hide transcript
+                            finalTranscriptContainer.classList.add('hidden');
+                            mainContentArea.classList.add('transcript-hidden');
+                            toggleTranscriptBtn.title = 'Show transcript';
+                            toggleTranscriptText.textContent = 'Show Transcript';
+                            // Change icon to eye icon (transcript hidden, show option)
+                            toggleTranscriptIcon.innerHTML = `
+                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                            `;
+                            showToast('Transcript hidden - Summary expanded', 'info', 2000);
+                        }
+                    });
+                }
+
                 document.addEventListener('transcription', (event) => {
                     const data = event.detail;
                     if (data.text) {
@@ -2559,6 +2612,18 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     }
                 };
                 
+                // Test function to debug transcript toggle
+                window.testTranscriptToggle = () => {
+                    const toggleBtn = document.getElementById('toggleTranscriptBtn');
+                    console.log('Testing transcript toggle:', toggleBtn);
+                    if (toggleBtn) {
+                        toggleBtn.click();
+                        showToast('Transcript toggle clicked', 'info');
+                    } else {
+                        showToast('Transcript toggle button not found!', 'error');
+                    }
+                };
+                
                 // Preset configurations
                 const presets = {
                     meeting: {
@@ -2736,6 +2801,10 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     } else if (e.key === '?' && !e.shiftKey) {
                         const shortcuts = document.getElementById('keyboardShortcuts');
                         if (shortcuts) shortcuts.classList.toggle('visible');
+                    } else if (e.key.toLowerCase() === 't') {
+                        e.preventDefault();
+                        const toggleBtn = document.getElementById('toggleTranscriptBtn');
+                        if (toggleBtn) toggleBtn.click();
                     }
                 });
                 

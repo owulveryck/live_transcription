@@ -1187,14 +1187,72 @@ h1 {
     display: flex;
     gap: 20px;
     margin-top: 20px;
+    transition: all var(--transition-normal);
 }
 
 .final-transcript-container {
     flex: 1;
+    transition: all var(--transition-normal);
+}
+
+.final-transcript-container.hidden {
+    flex: 0;
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
 }
 
 .summary-container {
     flex: 1;
+    transition: all var(--transition-normal);
+}
+
+/* When transcript is hidden, summary container expands to full width */
+.main-content-area:has(.final-transcript-container.hidden) .summary-container {
+    flex: 1;
+    max-width: 100%;
+}
+
+/* Fallback for browsers that don't support :has() selector */
+.main-content-area.transcript-hidden .summary-container {
+    flex: 1;
+    max-width: 100%;
+}
+
+.main-content-area.transcript-hidden .final-transcript-container {
+    flex: 0;
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* Transcript toggle button styling */
+.transcript-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.875rem;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    transition: all var(--transition-fast);
+}
+
+.transcript-toggle:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--primary-500);
+}
+
+.transcript-toggle svg {
+    flex-shrink: 0;
+}
+
+.transcript-toggle span {
+    font-weight: 500;
 }
 
 @media (max-width: 1024px) {
@@ -1204,6 +1262,20 @@ h1 {
     
     .main-content-area {
         flex-direction: column;
+    }
+    
+    /* On mobile, when transcript is hidden, maintain normal layout */
+    .main-content-area.transcript-hidden {
+        flex-direction: column;
+    }
+    
+    .main-content-area.transcript-hidden .final-transcript-container {
+        display: none;
+    }
+    
+    .main-content-area.transcript-hidden .summary-container {
+        width: 100%;
+        max-width: 100%;
     }
     
     .control-row {
