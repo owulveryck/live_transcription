@@ -243,7 +243,14 @@
 
                     <div class="summary-container">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h2>Summary</h2>
+                            <div style="display: flex; align-items: center;">
+                                <h2>Summary</h2>
+                                <div id="summaryLoadingIndicator" class="summary-loading-dots-sequential" style="display: none;">
+                                    <div class="dot"></div>
+                                    <div class="dot"></div>
+                                    <div class="dot"></div>
+                                </div>
+                            </div>
                             <button id="copySummaryBtn" class="btn btn-outline" onclick="copySummaryToClipboard()" disabled>
                                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                     <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6z"/>
@@ -2005,9 +2012,11 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     const liveIndicator = document.getElementById('liveIndicator');
                     const confidenceIndicator = document.getElementById('confidenceIndicator');
                     const audioVisualizerContainer = document.getElementById('audioVisualizerContainer');
+                    const summaryLoadingIndicator = document.getElementById('summaryLoadingIndicator');
                     
                     if (liveIndicator) liveIndicator.style.display = 'none';
                     if (confidenceIndicator) confidenceIndicator.style.display = 'none';
+                    if (summaryLoadingIndicator) summaryLoadingIndicator.style.display = 'none';
                     if (audioVisualizerContainer) audioVisualizerContainer.style.display = 'none';
                     
                     // Cleanup waveform
@@ -2038,6 +2047,12 @@ Update previous interview notes while maintaining consistency in evaluation crit
                     copyFinalTranscriptBtn.disabled = true;
                     copySummaryBtn.disabled = true;
                     resetStats();
+                    
+                    // Hide loading indicator when clearing
+                    const summaryLoadingIndicator = document.getElementById('summaryLoadingIndicator');
+                    if (summaryLoadingIndicator) {
+                        summaryLoadingIndicator.style.display = 'none';
+                    }
                     
                     // Clear phrase sets
                     const phraseSetsTextarea = document.getElementById('phraseSets');
@@ -2084,6 +2099,16 @@ Update previous interview notes while maintaining consistency in evaluation crit
                             totalWords += data.text.split(/\s+/).filter(word => word.length > 0).length;
                             wordsCountSpan.textContent = totalWords;
                             copyFinalTranscriptBtn.disabled = false;
+                            
+                            // Show loading indicator when final transcript is added (triggers summary generation)
+                            const summaryLoadingIndicator = document.getElementById('summaryLoadingIndicator');
+                            console.log('🔄 Final transcript received, showing loading indicator', summaryLoadingIndicator);
+                            if (summaryLoadingIndicator) {
+                                summaryLoadingIndicator.style.display = 'flex';
+                                console.log('✅ Loading indicator shown');
+                            } else {
+                                console.error('❌ Loading indicator element not found');
+                            }
                             
                             // Hide confidence indicator for final transcripts
                             const confidenceIndicator = document.getElementById('confidenceIndicator');
@@ -2276,6 +2301,16 @@ Update previous interview notes while maintaining consistency in evaluation crit
                 document.addEventListener('summary', (event) => {
                     const data = event.detail;
                     if (data.text) {
+                        // Hide loading indicator when summary is received
+                        const summaryLoadingIndicator = document.getElementById('summaryLoadingIndicator');
+                        console.log('📝 Summary received, hiding loading indicator', summaryLoadingIndicator);
+                        if (summaryLoadingIndicator) {
+                            summaryLoadingIndicator.style.display = 'none';
+                            console.log('✅ Loading indicator hidden');
+                        } else {
+                            console.error('❌ Loading indicator element not found when hiding');
+                        }
+                        
                         // Store raw markdown for copying
                         rawSummaryMarkdown = data.text;
                         // Render markdown content
@@ -2503,6 +2538,24 @@ Update previous interview notes while maintaining consistency in evaluation crit
                         showToast(`Primary: ${languageCodes[0] || 'NONE'}, Alternatives: [${languageCodes.slice(1).join(', ')}]`, 'info', 8000);
                     } else {
                         showToast('Language codes input element not found!', 'error');
+                    }
+                };
+                
+                // Test function to debug loading indicator
+                window.testLoadingIndicator = () => {
+                    const summaryLoadingIndicator = document.getElementById('summaryLoadingIndicator');
+                    console.log('Testing loading indicator:', summaryLoadingIndicator);
+                    if (summaryLoadingIndicator) {
+                        const isVisible = summaryLoadingIndicator.style.display !== 'none';
+                        if (isVisible) {
+                            summaryLoadingIndicator.style.display = 'none';
+                            showToast('Loading indicator hidden', 'info');
+                        } else {
+                            summaryLoadingIndicator.style.display = 'flex';
+                            showToast('Loading indicator shown', 'info');
+                        }
+                    } else {
+                        showToast('Loading indicator element not found!', 'error');
                     }
                 };
                 

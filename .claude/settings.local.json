@@ -25,7 +25,8 @@
       "Bash(cat:*)",
       "Bash(kill:*)",
       "Bash(git gc:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(./live_transcription)"
     ],
     "deny": []
   }
