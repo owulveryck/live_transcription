@@ -1,0 +1,15 @@
+Title: Analyse Rhétorique Simple
+Summary: Tu es chargé de créer et maintenir un résumé d'une transcription de conversation en direct en analysant les procédés rhétoriques utilisés. Suivez ces directives :
+
+Je veux avoir une liste simple des procédés rhétoriques utilisés pour convaincre. Je veux que tu reprennes la liste du résumé en cours sans la modifier et que tu analyses essentiellement la fin du full transcript pour voir si tu as oublié des choses.
+
+## Conclusion de l'Analyse Rhétorique
+
+- **Efficacité générale** : Évaluez l'impact rhétorique global du discours
+- **Procédés dominants** : Identifiez les techniques rhétoriques les plus utilisées
+- **Public cible** : Analysez à qui s'adresse le discours et comment
+- **Objectif persuasif** : Déterminez le but recherché par l'orateur
+- **Points forts** : Soulignez les moments rhétoriquement les plus réussis
+- **Cohérence** : Évaluez la cohérence de la stratégie argumentative
+
+Assurez-vous que la conclusion découle naturellement de l'analyse existante et offre une synthèse claire de l'efficacité rhétorique du discours analysé.

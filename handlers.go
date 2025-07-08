@@ -29,7 +29,8 @@ func serveDefaultPrompt(w http.ResponseWriter, r *http.Request) {
 5. **Important quotes**: When something is particularly important, include a direct quote from the transcript
 6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
 
-If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.`
+If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.
+**IMPORTANT**: Keep the existing summary language and maintain the structure of the previous summary.`
 
 	defaultEndPrompt := `**IMPORTANT**: Keep the existing summary language and maintain the structure above.
 
@@ -121,9 +122,9 @@ func serveStaticFiles(w http.ResponseWriter, r *http.Request) {
 	// Handle direct file requests (for relative paths from served JS files)
 	// Try to serve files from ui directory first
 	possiblePaths := []string{
-		"ui" + path,                    // /css/styles.css -> ui/css/styles.css
-		"ui/js" + path,                 // /audio-processor.js -> ui/js/audio-processor.js
-		"ui/css" + path,                // /styles.css -> ui/css/styles.css
+		"ui" + path,     // /css/styles.css -> ui/css/styles.css
+		"ui/js" + path,  // /audio-processor.js -> ui/js/audio-processor.js
+		"ui/css" + path, // /styles.css -> ui/css/styles.css
 	}
 
 	for _, tryPath := range possiblePaths {
@@ -194,13 +195,13 @@ func getPresetDirectory() string {
 func parsePresetFile(content string) (*Preset, error) {
 	preset := &Preset{}
 	lines := strings.Split(content, "\n")
-	
+
 	var currentSection string
 	var summaryLines, conclusionLines []string
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(line, "Title: ") {
 			preset.Title = strings.TrimPrefix(line, "Title: ")
 		} else if strings.HasPrefix(line, "Summary: ") {
@@ -218,10 +219,10 @@ func parsePresetFile(content string) (*Preset, error) {
 			}
 		}
 	}
-	
+
 	preset.Summary = strings.Join(summaryLines, "\n")
 	preset.Conclusion = strings.Join(conclusionLines, "\n")
-	
+
 	return preset, nil
 }
 
@@ -231,10 +232,10 @@ func servePresets(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	presetDir := getPresetDirectory()
 	presets := make(map[string]string)
-	
+
 	// Check if directory exists
 	if _, err := os.Stat(presetDir); os.IsNotExist(err) {
 		logger.Warn("Preset directory does not exist", "directory", presetDir)
@@ -242,7 +243,7 @@ func servePresets(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(presets)
 		return
 	}
-	
+
 	// Read directory contents
 	files, err := os.ReadDir(presetDir)
 	if err != nil {
@@ -250,30 +251,30 @@ func servePresets(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Process each .txt file
 	for _, file := range files {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), ".txt") {
 			continue
 		}
-		
+
 		filePath := filepath.Join(presetDir, file.Name())
 		content, err := os.ReadFile(filePath)
 		if err != nil {
 			logger.Error("Failed to read preset file", "file", filePath, "error", err)
 			continue
 		}
-		
+
 		preset, err := parsePresetFile(string(content))
 		if err != nil {
 			logger.Error("Failed to parse preset file", "file", filePath, "error", err)
 			continue
 		}
-		
+
 		presetName := strings.TrimSuffix(file.Name(), ".txt")
 		presets[presetName] = preset.Title
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(presets); err != nil {
 		logger.Error("Failed to encode presets response", "error", err)
@@ -287,23 +288,23 @@ func servePreset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// Extract preset name from URL path
 	path := strings.TrimPrefix(r.URL.Path, "/api/presets/")
 	if path == "" {
 		http.Error(w, "Preset name required", http.StatusBadRequest)
 		return
 	}
-	
+
 	presetDir := getPresetDirectory()
 	filePath := filepath.Join(presetDir, path+".txt")
-	
+
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		http.Error(w, "Preset not found", http.StatusNotFound)
 		return
 	}
-	
+
 	// Read and parse preset file
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -311,14 +312,14 @@ func servePreset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	
+
 	preset, err := parsePresetFile(string(content))
 	if err != nil {
 		logger.Error("Failed to parse preset file", "file", filePath, "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(preset); err != nil {
 		logger.Error("Failed to encode preset response", "error", err)

@@ -9,6 +9,8 @@ Summary: You are tasked with creating and maintaining a summary of a live conver
 6. **Format**: Use markdown formatting for better readability. Put emphasis (bold and italic) on important concept, and use > for quotes.
 
 If this is an update to an existing summary, maintain the structure and content of the previous summary unless corrections are needed.
+**IMPORTANT**: Keep the existing summary language and maintain the structure above.`
+
 Conclusion: **IMPORTANT**: Keep the existing summary language and maintain the structure above.
 
 Now add a **conclusion** to finalize this conversation summary. Include:
